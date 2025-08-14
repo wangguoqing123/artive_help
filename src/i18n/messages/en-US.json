@@ -1,0 +1,146 @@
+{
+  "app": {
+    "common": {
+      "loading": "Loading...",
+      "generating": "Generating...",
+      "original": "Original",
+      "result": "Result",
+      "openMenu": "Open Menu",
+      "closeMenu": "Close Menu"
+    },
+    "title": "WeChat Content Manager",
+    "nav": {
+      "dashboard": "Dashboard",
+      "materials": "Materials",
+      "rewrite": "AI Rewrite",
+      "contents": "Content",
+      "publish": "Publish",
+      "publishHistory": "Publish History",
+      "settings": "Settings"
+    },
+    "actions": {
+      "addToLibrary": "Add to Materials",
+      "batchRewrite": "Batch Rewrite",
+      "batchDelete": "Batch Delete",
+      "rewrite": "Rewrite",
+      "regenerate": "Regenerate",
+      "save": "Save",
+      "saveToContent": "Save to Content",
+      "publish": "Publish",
+      "filter": "Filter",
+      "search": "Search",
+      "refresh": "Refresh",
+      "selectAll": "Select All",
+      "clear": "Clear",
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    },
+    "dashboard": {
+      "hotboards": {
+        "weixin": "WeChat Hot",
+        "zhihu": "Zhihu Hot",
+        "baidu": "Baidu Trends"
+      },
+      "hot": "Heat",
+      "source": "Source",
+      "empty": "No data"
+    },
+    "materials": {
+      "title": "Materials",
+      "columns": {
+        "title": "Title",
+        "source": "Source",
+        "collectedAt": "Collected At"
+      }
+    },
+    "rewrite": {
+      "title": "AI Rewrite",
+      "style": "Style",
+      "prompt": "Custom Prompt",
+      "styles": {
+        "professional": "Professional",
+        "plain": "Plain",
+        "xiaohongshu": "Xiaohongshu Style",
+        "zhihu": "Zhihu Style",
+        "humor": "Humorous"
+      }
+    },
+    "contents": {
+      "title": "Content",
+      "columns": {
+        "title": "Title",
+        "status": "Status",
+        "category": "Category",
+        "tags": "Tags",
+        "createdAt": "Created",
+        "updatedAt": "Updated",
+        "actions": "Actions"
+      },
+      "status": {
+        "draft": "Draft",
+        "pending": "Pending",
+        "published": "Published",
+        "failed": "Failed"
+      },
+      "categoryManager": "Category Manager",
+      "tagManager": "Tag Manager"
+    },
+    "publish": {
+      "title": "Publish",
+      "modal": {
+        "title": "Publish Config",
+        "selectAccounts": "Select target WeChat accounts",
+        "schedule": "Schedule",
+        "publishNow": "Publish Now"
+      },
+      "preparedLabel": "Prepared article ids",
+      "seeHistory": "See Publish History.",
+      "history": {
+        "title": "Publish History",
+        "columns": {
+          "article": "Article",
+          "account": "Account",
+          "status": "Status",
+          "reason": "Reason",
+          "time": "Time"
+        }
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "tabs": {
+        "accounts": "WeChat Accounts",
+        "fingerprints": "Fingerprint Browsers"
+      },
+      "accounts": {
+        "add": "Add Account",
+        "edit": "Edit Account",
+        "delete": "Delete Account",
+        "fields": {
+          "name": "Account Name",
+          "appId": "AppID",
+          "appSecret": "AppSecret",
+          "cookie": "Login Cookie",
+          "bindFingerprint": "Bind Fingerprint"
+        }
+      },
+      "fingerprints": {
+        "add": "Add Instance",
+        "edit": "Edit Instance",
+        "delete": "Delete Instance",
+        "fields": {
+          "name": "Instance Name",
+          "corePath": "Browser Core Path",
+          "userDataDir": "UserDataDir"
+        }
+      }
+    },
+    "feedback": {
+      "addedToMaterials": "Added to materials",
+      "saved": "Saved",
+      "deleted": "Deleted",
+      "published": "Published",
+      "failed": "Publish failed"
+    }
+  }
+}

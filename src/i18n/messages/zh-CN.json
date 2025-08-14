@@ -1,0 +1,146 @@
+{
+  "app": {
+    "common": {
+      "loading": "加载中...",
+      "generating": "生成中...",
+      "original": "原文",
+      "result": "结果",
+      "openMenu": "打开菜单",
+      "closeMenu": "关闭菜单"
+    },
+    "title": "公众号内容管理系统",
+    "nav": {
+      "dashboard": "首页",
+      "materials": "素材库",
+      "rewrite": "AI 改写",
+      "contents": "内容管理",
+      "publish": "发布",
+      "publishHistory": "发布历史",
+      "settings": "设置"
+    },
+    "actions": {
+      "addToLibrary": "加入素材库",
+      "batchRewrite": "批量改写",
+      "batchDelete": "批量删除",
+      "rewrite": "改写",
+      "regenerate": "重新生成",
+      "save": "保存",
+      "saveToContent": "保存到内容管理",
+      "publish": "发布",
+      "filter": "筛选",
+      "search": "搜索",
+      "refresh": "刷新",
+      "selectAll": "全选",
+      "clear": "清空",
+      "confirm": "确认",
+      "cancel": "取消"
+    },
+    "dashboard": {
+      "hotboards": {
+        "weixin": "微信热文",
+        "zhihu": "知乎热榜",
+        "baidu": "百度热搜"
+      },
+      "hot": "热度",
+      "source": "来源",
+      "empty": "暂无数据"
+    },
+    "materials": {
+      "title": "素材库",
+      "columns": {
+        "title": "标题",
+        "source": "来源",
+        "collectedAt": "收录时间"
+      }
+    },
+    "rewrite": {
+      "title": "AI 改写",
+      "style": "改写风格",
+      "prompt": "自定义提示词",
+      "styles": {
+        "professional": "专业严谨",
+        "plain": "通俗易懂",
+        "xiaohongshu": "小红书风格",
+        "zhihu": "知乎风格",
+        "humor": "幽默风趣"
+      }
+    },
+    "contents": {
+      "title": "内容管理",
+      "columns": {
+        "title": "文章标题",
+        "status": "发布状态",
+        "category": "分类",
+        "tags": "标签",
+        "createdAt": "创建时间",
+        "updatedAt": "修改时间",
+        "actions": "操作"
+      },
+      "status": {
+        "draft": "草稿",
+        "pending": "待发布",
+        "published": "已发布",
+        "failed": "失败"
+      },
+      "categoryManager": "分类管理",
+      "tagManager": "标签管理"
+    },
+    "publish": {
+      "title": "发布",
+      "modal": {
+        "title": "发布配置",
+        "selectAccounts": "选择要发布的公众号账号",
+        "schedule": "定时发布",
+        "publishNow": "立即发布"
+      },
+      "preparedLabel": "准备发布的文章",
+      "seeHistory": "发布历史见『发布历史』。",
+      "history": {
+        "title": "发布历史",
+        "columns": {
+          "article": "文章",
+          "account": "账号",
+          "status": "状态",
+          "reason": "原因",
+          "time": "时间"
+        }
+      }
+    },
+    "settings": {
+      "title": "设置",
+      "tabs": {
+        "accounts": "公众号账号",
+        "fingerprints": "指纹浏览器"
+      },
+      "accounts": {
+        "add": "新增账号",
+        "edit": "编辑账号",
+        "delete": "删除账号",
+        "fields": {
+          "name": "账号名称",
+          "appId": "AppID",
+          "appSecret": "AppSecret",
+          "cookie": "登录 Cookie",
+          "bindFingerprint": "绑定指纹实例"
+        }
+      },
+      "fingerprints": {
+        "add": "新增实例",
+        "edit": "编辑实例",
+        "delete": "删除实例",
+        "fields": {
+          "name": "实例名称",
+          "corePath": "浏览器核心路径",
+          "userDataDir": "用户数据目录"
+        }
+      }
+    },
+    "feedback": {
+      "addedToMaterials": "已加入素材库",
+      "saved": "已保存",
+      "deleted": "已删除",
+      "published": "已发布",
+      "failed": "发布失败"
+    }
+  }
+}
