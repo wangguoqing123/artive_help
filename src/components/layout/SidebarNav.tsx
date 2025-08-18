@@ -16,6 +16,13 @@ export default function SidebarNav({ locale, messages, onNavigate }: { locale: s
       description: "实时热点与数据分析"
     },
     { 
+      href: `/${locale}/inspiration`, 
+      label: t("app.nav.inspiration") || "灵感集市", 
+      icon: Icons.heart,
+      description: "订阅创作者，获取灵感",
+      badge: "NEW"
+    },
+    { 
       href: `/${locale}/materials`, 
       label: t("app.nav.materials"), 
       icon: Icons.folder,

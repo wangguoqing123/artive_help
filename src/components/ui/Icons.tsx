@@ -42,7 +42,12 @@ import {
   Save,
   Trash2,
   Edit,
-  MoreVertical
+  MoreVertical,
+  Newspaper,
+  Hash,
+  Globe,
+  Flame,
+  Play
 } from "lucide-react"
 
 export const Icons = {
@@ -63,6 +68,7 @@ export const Icons = {
   link: Link,
   tag: Tag,
   folder: Folder,
+  play: Play,
   
   // Social & Sharing
   share: Share2,
@@ -79,6 +85,7 @@ export const Icons = {
   // UI Elements
   sparkles: Sparkles,
   zap: Zap,
+  flame: Flame,
   
   // Time & Date
   calendar: Calendar,
@@ -109,4 +116,9 @@ export const Icons = {
   filter: Filter,
   sortDesc: SortDesc,
   refresh: RefreshCw,
+  
+  // Platform Icons
+  newspaper: Newspaper,
+  hash: Hash,
+  globe: Globe,
 }
