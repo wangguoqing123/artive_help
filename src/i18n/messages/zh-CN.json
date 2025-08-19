@@ -141,6 +141,76 @@
       "deleted": "已删除",
       "published": "已发布",
       "failed": "发布失败"
+    },
+    "inspiration": {
+      "title": "灵感集市",
+      "subtitle": "订阅创作者，获取灵感，一键入库",
+      "todayUpdate": "今日更新",
+      "search": {
+        "title": "新增订阅",
+        "placeholder": "搜索公众号名或 YouTube 频道名",
+        "button": "搜索",
+        "searching": "搜索中",
+        "minChars": "请输入公众号名称进行搜索",
+        "notFound": "未找到该公众号，请检查名称是否正确",
+        "networkError": "搜索失败，请检查网络连接",
+        "systemError": "系统繁忙，请稍后重试",
+        "foundAccount": "找到公众号：{{name}}",
+        "checkNameHint": "请检查公众号名称后重试"
+      },
+      "subscription": {
+        "mySubscriptions": "我的订阅",
+        "limitReached": "订阅数量已达上限（200个），请先删除一些订阅",
+        "alreadySubscribed": "该公众号已订阅",
+        "subscribeSuccess": "成功订阅公众号：{{name}}",
+        "subscribe": "订阅",
+        "subscribed": "已订阅",
+        "unsubscribe": "取消订阅",
+        "enable": "启用",
+        "disable": "停用",
+        "edit": "编辑",
+        "delete": "删除",
+        "deleteConfirm": "确定要删除这个订阅吗？已采集的内容将保留。",
+        "all": "全部",
+        "active": "启用",
+        "inactive": "停用",
+        "noSubscriptions": "暂无订阅",
+        "noActiveSubscriptions": "暂无启用的订阅",
+        "noInactiveSubscriptions": "暂无停用的订阅",
+        "addCreatorHint": "搜索并添加你关注的创作者",
+        "switchTabHint": "尝试切换到其他标签查看",
+        "lastSync": "最近同步",
+        "neverSynced": "从未同步",
+        "willAutoFetch": "订阅后将自动采集该公众号的最新内容"
+      },
+      "account": {
+        "followers": "粉丝",
+        "articleCount": "文章数",
+        "latestUpdate": "最近更新",
+        "wxId": "微信ID",
+        "wechat": "微信公众号",
+        "youtube": "YouTube",
+        "today": "今天",
+        "yesterday": "昨天",
+        "daysAgo": "{{days}}天前",
+        "weeksAgo": "{{weeks}}周前",
+        "monthsAgo": "{{months}}月前",
+        "overYear": "超过一年",
+        "unknown": "未知"
+      },
+      "timeline": {
+        "latestContent": "最新内容",
+        "fromSubscriptions": "来自你订阅的 {{count}} 个创作者",
+        "fetchLatest": "获取最新内容",
+        "fetching": "获取中...",
+        "pleaseAddSubscription": "请先添加订阅"
+      },
+      "timeFormat": {
+        "justNow": "刚刚",
+        "minutesAgo": "{{minutes}}分钟前",
+        "hoursAgo": "{{hours}}小时前",
+        "daysAgo": "{{days}}天前"
+      }
     }
   }
 }

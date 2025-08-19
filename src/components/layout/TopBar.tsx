@@ -5,10 +5,16 @@ import SidebarNav from "@/components/layout/SidebarNav";
 import { Icons } from "@/components/ui/Icons";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth/AuthProvider";
+import AuthModalWithPortal from "@/components/auth/AuthModalWithPortal";
+import { ChevronDown, User, LogOut } from "lucide-react";
 
 export default function TopBar({ locale, messages }: { locale: string; messages: any }) {
   const t = (path: string) => path.split(".").reduce((acc: any, key) => acc?.[key], messages)?.toString?.() ?? "";
   const [open, setOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { user, loading, signOut } = useAuth();
   const pathname = usePathname();
 
   // Get current page info for breadcrumb
@@ -99,14 +105,70 @@ export default function TopBar({ locale, messages }: { locale: string; messages:
             </Button>
           </div>
           
-          {/* Profile */}
-          <Button variant="ghost" className="h-10 px-3 gap-2">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white text-sm font-medium">
-              U
+          {/* Profile / Login */}
+          {loading ? (
+            <div className="h-10 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          ) : user ? (
+            <div className="relative">
+              <Button 
+                variant="ghost" 
+                className="h-10 px-3 gap-2"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+              >
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white text-sm font-medium">
+                  {user.email?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <span className="hidden sm:inline text-sm font-medium truncate max-w-24">
+                  {user.email?.split('@')[0] || '用户'}
+                </span>
+                <ChevronDown className="w-4 h-4 opacity-50" />
+              </Button>
+              
+              {/* User Dropdown Menu */}
+              {userMenuOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setUserMenuOpen(false)} 
+                  />
+                  <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 py-2">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white font-medium">
+                          {user.email?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{user.email?.split('@')[0] || '用户'}</p>
+                          <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          signOut()
+                          setUserMenuOpen(false)
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        退出登录
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-            <span className="hidden sm:inline text-sm font-medium">用户</span>
-            <Icons.chevronDown className="w-4 h-4 opacity-50" />
-          </Button>
+          ) : (
+            <Button 
+              variant="outline" 
+              className="h-10 px-4 gap-2 hover:bg-green-50 dark:hover:bg-green-900/20 border-green-200 dark:border-green-800"
+              onClick={() => setAuthModalOpen(true)}
+            >
+              <User className="w-4 h-4" />
+              <span className="hidden sm:inline">登录</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -160,19 +222,51 @@ export default function TopBar({ locale, messages }: { locale: string; messages:
             
             {/* Mobile Footer */}
             <div className="p-6 border-t border-border/50">
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white text-xs font-medium">
-                  U
+              {user ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white text-xs font-medium">
+                      {user.email?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{user.email?.split('@')[0] || '用户'}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      signOut()
+                      setOpen(false)
+                    }}
+                    className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center gap-2 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    退出登录
+                  </button>
                 </div>
-                <span>用户账户</span>
-                <Icons.settings className="w-4 h-4 ml-auto opacity-60" />
-              </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setAuthModalOpen(true)
+                    setOpen(false)
+                  }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  登录账户
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
+      
+      {/* Auth Modal */}
+      <AuthModalWithPortal 
+        isOpen={authModalOpen} 
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={() => setAuthModalOpen(false)}
+      />
     </div>
   );
 }
-
-

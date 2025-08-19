@@ -47,7 +47,9 @@ import {
   Hash,
   Globe,
   Flame,
-  Play
+  Play,
+  Check,
+  Users
 } from "lucide-react"
 
 export const Icons = {
@@ -94,6 +96,7 @@ export const Icons = {
   
   // User & Settings
   user: User,
+  users: Users,
   settings: Settings,
   
   // Status & Feedback
@@ -102,6 +105,7 @@ export const Icons = {
   info: Info,
   xCircle: XCircle,
   loader: Loader2,
+  check: Check,
   
   // File Operations
   download: Download,

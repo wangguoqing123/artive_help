@@ -315,7 +315,7 @@ export function TimelineSection({
 
   return (
     <div className="space-y-6">
-      {/* 筛选器和排序 */}
+      {/* 筛选器 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button
@@ -330,18 +330,6 @@ export function TimelineSection({
               <span className="w-2 h-2 bg-green-500 rounded-full shadow-sm" />
             )}
           </Button>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">排序：</span>
-            <select
-              value={sortBy}
-              onChange={(e) => onSortChange(e.target.value as SortOption)}
-              className="text-sm border border-green-200 dark:border-green-800 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 font-medium shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500"
-            >
-              <option value="publishedAt">发布时间</option>
-              <option value="popularity">热度</option>
-            </select>
-          </div>
         </div>
         
         <div className="text-sm text-muted-foreground">
@@ -576,20 +564,20 @@ export function TimelineSection({
                           </div>
 
                           <div className="flex gap-2 p-2">
-                            {/* 缩略图 */}
-                            <div className="relative flex-shrink-0">
+                            {/* 缩略图 - 放大到与内容等高 */}
+                            <div className="relative flex-shrink-0 h-full">
                               <img
                                 src={item.thumbnail || '/placeholder-image.jpg'}
                                 alt={item.title}
-                                className="w-16 h-12 object-cover rounded-lg"
+                                className="h-full w-auto max-w-[200px] object-cover rounded-lg"
                               />
                               {item.duration && (
-                                <div className="absolute bottom-0.5 right-0.5 px-1 py-0.5 bg-black/80 text-white text-xs rounded">
+                                <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/80 text-white text-xs rounded font-medium">
                                   {item.duration}
                                 </div>
                               )}
                               {item.isLive && (
-                                <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-red-500 text-white text-xs rounded">
+                                <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-red-500 text-white text-xs rounded font-medium">
                                   直播
                                 </div>
                               )}
@@ -621,14 +609,6 @@ export function TimelineSection({
                                     <h3 className="font-semibold text-base text-foreground truncate">
                                       {item.sourceName}
                                     </h3>
-                                    <span className={cn(
-                                      "px-2 py-0.5 text-xs font-medium rounded-full",
-                                      item.platform === 'youtube' 
-                                        ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-300" 
-                                        : "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-300"
-                                    )}>
-                                      {item.platform === 'youtube' ? 'YouTube' : '微信'}
-                                    </span>
                                   </div>
                                   <p className="text-sm text-muted-foreground font-medium">
                                     {formatTime(item.publishedAt)}

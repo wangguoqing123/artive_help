@@ -141,6 +141,76 @@
       "deleted": "Deleted",
       "published": "Published",
       "failed": "Publish failed"
+    },
+    "inspiration": {
+      "title": "Inspiration Market",
+      "subtitle": "Subscribe to creators, get inspiration, one-click to library",
+      "todayUpdate": "Today's Update",
+      "search": {
+        "title": "Add Subscription",
+        "placeholder": "Search WeChat account or YouTube channel",
+        "button": "Search",
+        "searching": "Searching",
+        "minChars": "Please enter account name to search",
+        "notFound": "Account not found, please check the name",
+        "networkError": "Search failed, please check network",
+        "systemError": "System busy, please try again later",
+        "foundAccount": "Found account: {{name}}",
+        "checkNameHint": "Please check the account name and try again"
+      },
+      "subscription": {
+        "mySubscriptions": "My Subscriptions",
+        "limitReached": "Subscription limit reached (200), please delete some first",
+        "alreadySubscribed": "This account is already subscribed",
+        "subscribeSuccess": "Successfully subscribed: {{name}}",
+        "subscribe": "Subscribe",
+        "subscribed": "Subscribed",
+        "unsubscribe": "Unsubscribe",
+        "enable": "Enable",
+        "disable": "Disable",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleteConfirm": "Delete this subscription? Collected content will be kept.",
+        "all": "All",
+        "active": "Active",
+        "inactive": "Inactive",
+        "noSubscriptions": "No subscriptions",
+        "noActiveSubscriptions": "No active subscriptions",
+        "noInactiveSubscriptions": "No inactive subscriptions",
+        "addCreatorHint": "Search and add creators you follow",
+        "switchTabHint": "Try switching to other tabs",
+        "lastSync": "Last sync",
+        "neverSynced": "Never synced",
+        "willAutoFetch": "Will automatically fetch latest content after subscription"
+      },
+      "account": {
+        "followers": "Followers",
+        "articleCount": "Articles",
+        "latestUpdate": "Latest Update",
+        "wxId": "WeChat ID",
+        "wechat": "WeChat Official Account",
+        "youtube": "YouTube",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "daysAgo": "{{days}} days ago",
+        "weeksAgo": "{{weeks}} weeks ago",
+        "monthsAgo": "{{months}} months ago",
+        "overYear": "Over a year",
+        "unknown": "Unknown"
+      },
+      "timeline": {
+        "latestContent": "Latest Content",
+        "fromSubscriptions": "From {{count}} creators you subscribed",
+        "fetchLatest": "Fetch Latest",
+        "fetching": "Fetching...",
+        "pleaseAddSubscription": "Please add subscription first"
+      },
+      "timeFormat": {
+        "justNow": "Just now",
+        "minutesAgo": "{{minutes}} minutes ago",
+        "hoursAgo": "{{hours}} hours ago",
+        "daysAgo": "{{days}} days ago"
+      }
     }
   }
 }
