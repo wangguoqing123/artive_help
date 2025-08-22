@@ -114,6 +114,46 @@ export async function POST(request: NextRequest) {
     let totalNewArticles = 0;
     let fetchedPages = 0;
     const maxPages = 5; // 只获取前5页
+    let skipNoLink = 0;
+    let existedCount = 0;
+    let insertErrorCount = 0;
+
+    // 将第三方返回的文章字段归一化
+    const normalizeArticle = (item: any) => {
+      const link =
+        item?.link ||
+        item?.url ||
+        item?.content_url ||
+        item?.source_url ||
+        item?.doc_url ||
+        '';
+      const title = item?.title || item?.name || item?.doc_title || '';
+      const cover = item?.cover || item?.cover_url || item?.thumb || item?.thumbnail || '';
+      const idx = item?.idx || item?.index || 1;
+      const mid = item?.mid || item?.id || item?.doc_id || '';
+      // 兼容时间戳（秒）和可解析的时间字符串
+      const rawDatetime = item?.datetime || item?.publish_time || item?.pub_time || item?.created_at || item?.time;
+      let publishedISO: string | null = null;
+      if (typeof rawDatetime === 'number') {
+        // 大概率是秒级时间戳
+        const ms = rawDatetime > 1e12 ? rawDatetime : rawDatetime * 1000;
+        publishedISO = new Date(ms).toISOString();
+      } else if (typeof rawDatetime === 'string') {
+        const parsed = Date.parse(rawDatetime);
+        if (!Number.isNaN(parsed)) {
+          publishedISO = new Date(parsed).toISOString();
+        }
+      }
+
+      return {
+        title,
+        link,
+        cover,
+        idx,
+        mid,
+        published_at: publishedISO,
+      };
+    };
 
     try {
       // 使用大家啦API获取历史内容
@@ -182,8 +222,13 @@ export async function POST(request: NextRequest) {
         const articles = result.data;
         fetchedPages++;
 
-        // 处理每页的文章 - 大家啦API直接返回文章数组
-        for (const article of articles) {
+        // 处理每页的文章 - 归一化字段并去除无链接项
+        for (const raw of articles) {
+          const article = normalizeArticle(raw);
+          if (!article.link) {
+            skipNoLink++;
+            continue;
+          }
           allArticles.push(article);
         }
 
@@ -194,17 +239,24 @@ export async function POST(request: NextRequest) {
       }
 
       // 去重并存储文章到数据库
+      const seen = new Set<string>();
       for (const article of allArticles) {
-        if (!article.link) continue; // 跳过没有链接的文章
+        if (!article.link) continue;
+        if (seen.has(article.link)) {
+          existedCount++;
+          continue;
+        }
+        seen.add(article.link);
 
-        // 检查文章是否已存在（基于URL去重）
+        // 检查文章是否已存在（基于URL去重），使用更稳妥的 maybeSingle()
         const { data: existingContent } = await supabase
           .from('contents')
           .select('id')
           .eq('original_url', article.link)
-          .single();
+          .maybeSingle?.();
 
         if (existingContent) {
+          existedCount++;
           continue; // 文章已存在，跳过
         }
 
@@ -212,20 +264,22 @@ export async function POST(request: NextRequest) {
         const { error: insertError } = await supabase
           .from('contents')
           .insert({
-            source_type: 'wechat', // 内容源类型
-            source_id: wechatAccount.id, // 关联的公众号ID
+            source_type: 'wechat',
+            source_id: wechatAccount.id,
+            content_type: 'article',
             title: article.title || '',
             original_url: article.link,
             cover_image_url: article.cover || '',
-            published_at: new Date(article.datetime * 1000).toISOString(), // 转换时间戳
-            position: article.idx || 1, // 文章在推送中的位置
-            send_to_fans_num: 0, // 大家啦API可能不提供此字段
-            external_id: article.mid || '' // 存储文章ID
+            published_at: article.published_at || new Date().toISOString(),
+            position: article.idx || 1,
+            send_to_fans_num: 0,
+            external_id: article.mid || ''
           });
 
         if (!insertError) {
           totalNewArticles++;
         } else {
+          insertErrorCount++;
           console.error('插入文章失败:', insertError);
         }
       }
@@ -239,12 +293,28 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', subscriptionId);
 
+      console.log('内容获取统计:', {
+        fetchedPages,
+        totalItemsFromAPI: allArticles.length + skipNoLink,
+        normalizedArticles: allArticles.length,
+        newArticles: totalNewArticles,
+        existedCount,
+        skipNoLink,
+        insertErrorCount
+      });
+
       return NextResponse.json({
         message: '内容获取完成',
         totalArticles: allArticles.length,
         newArticles: totalNewArticles,
         fetchedPages: fetchedPages,
-        accountName: wechatAccount.name
+        accountName: wechatAccount.name,
+        stats: {
+          normalized: allArticles.length,
+          existed: existedCount,
+          skippedNoLink: skipNoLink,
+          insertErrors: insertErrorCount
+        }
       });
 
     } catch (apiError) {

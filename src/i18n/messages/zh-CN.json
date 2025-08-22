@@ -177,6 +177,7 @@
         "edit": "编辑",
         "delete": "删除",
         "deleteConfirm": "确定要删除这个订阅吗？已采集的内容将保留。",
+        "deleteFailed": "取消订阅失败，请稍后重试",
         "all": "全部",
         "active": "启用",
         "inactive": "停用",

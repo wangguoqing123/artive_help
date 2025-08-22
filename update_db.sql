@@ -113,6 +113,12 @@ DROP POLICY IF EXISTS "Contents are viewable by everyone" ON contents;
 CREATE POLICY "Contents are viewable by everyone" ON contents
   FOR SELECT USING (true);
 
+-- 允许认证用户插入contents（修复接口可读不可写的问题）
+DROP POLICY IF EXISTS "Authenticated users can insert contents" ON contents;
+CREATE POLICY "Authenticated users can insert contents" ON contents
+  FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL);
+
 -- content_texts表策略
 DROP POLICY IF EXISTS "Content texts are viewable by everyone" ON content_texts;
 CREATE POLICY "Content texts are viewable by everyone" ON content_texts

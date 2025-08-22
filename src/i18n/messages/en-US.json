@@ -177,6 +177,7 @@
         "edit": "Edit",
         "delete": "Delete",
         "deleteConfirm": "Delete this subscription? Collected content will be kept.",
+        "deleteFailed": "Failed to unsubscribe, please try again later",
         "all": "All",
         "active": "Active",
         "inactive": "Inactive",

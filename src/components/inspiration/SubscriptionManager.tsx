@@ -435,12 +435,27 @@ export function SubscriptionManager({
     push(status === "active" ? "已启用订阅" : "已停用订阅", "success");
   };
 
-  // 删除订阅
-  const handleDelete = (id: string) => {
-    if (confirm("确定要删除这个订阅吗？已采集的内容将保留。")) {
+  // 删除订阅（调用后端并更新本地状态）
+  const handleDelete = async (id: string) => {
+    const confirmed = confirm(t("app.inspiration.subscription.deleteConfirm"));
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/subscriptions?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({} as any));
+        throw new Error(errorData.error || t("app.inspiration.subscription.deleteFailed"));
+      }
+
       const updatedSubscriptions = subscriptions.filter(sub => sub.id !== id);
       onSubscriptionsUpdate(updatedSubscriptions);
-      push("订阅已删除", "success");
+      push(t("app.feedback.deleted"), "success");
+    } catch (error) {
+      console.error('删除订阅失败:', error);
+      push(error instanceof Error ? error.message : t("app.inspiration.subscription.deleteFailed"), "error");
     }
   };
 
