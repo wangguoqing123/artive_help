@@ -172,5 +172,9 @@ export type SubscriptionSearchResult = {
   followerCount?: number;
   url: string;
   isSubscribed?: boolean;
+  // 微信公众号特有字段
+  biz?: string; // 微信公众号的biz参数，用于API调用
+  wxId?: string; // 微信ID，备用标识
+  ghid?: string; // 公众号ID，备用标识
 };
 

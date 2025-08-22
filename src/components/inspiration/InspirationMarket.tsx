@@ -29,6 +29,8 @@ export function InspirationMarket({ locale, messages }: { locale: AppLocale; mes
   });
   const [sortBy, setSortBy] = useState<SortOption>("publishedAt");
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasLoadedContent, setHasLoadedContent] = useState(false);
 
   // 今日更新统计
   const todayStats = useMemo(() => {
@@ -46,8 +48,18 @@ export function InspirationMarket({ locale, messages }: { locale: AppLocale; mes
 
   // 处理订阅更新
   const handleSubscriptionUpdate = (updatedSubscriptions: Subscription[]) => {
+    const previousCount = subscriptions.length;
     setSubscriptions(updatedSubscriptions);
-    // TODO: 触发内容重新获取
+    
+    // 如果订阅数量增加了（新增订阅），自动加载所有内容
+    if (updatedSubscriptions.length > previousCount) {
+      loadAllContent();
+    }
+    // 如果是首次加载订阅且有订阅，也要加载内容
+    else if (!hasLoadedContent && updatedSubscriptions.length > 0) {
+      loadAllContent();
+      setHasLoadedContent(true);
+    }
   };
 
   // 处理内容入库
@@ -62,32 +74,68 @@ export function InspirationMarket({ locale, messages }: { locale: AppLocale; mes
     );
   };
 
-  // 获取最新内容
+  // 加载所有订阅的内容
+  const loadAllContent = async () => {
+    setIsLoading(true);
+    try {
+      console.log('正在加载所有订阅的内容...');
+      
+      const response = await fetch('/api/subscriptions/content');
+      if (!response.ok) {
+        throw new Error('获取内容失败');
+      }
+      
+      const data = await response.json();
+      
+      // 更新内容列表
+      if (data.content && Array.isArray(data.content)) {
+        setTimelineContent(data.content);
+        console.log(`加载到 ${data.content.length} 条内容`);
+      } else {
+        setTimelineContent([]);
+        console.log('没有找到内容');
+      }
+    } catch (error) {
+      console.error('加载内容失败:', error);
+      setTimelineContent([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 刷新最新内容（刷新所有订阅的最新内容）
   const handleFetchLatestContent = async () => {
     if (subscriptions.filter(s => s.status === 'active').length === 0) {
-      // TODO: 显示提示
       console.log('请先添加订阅');
       return;
     }
 
-    setIsLoading(true);
+    setIsRefreshing(true);
     try {
-      // TODO: 调用API获取最新内容
-      console.log('正在获取最新内容...');
+      console.log('正在刷新所有订阅的最新内容...');
       
-      // 模拟API延迟
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 调用POST接口刷新所有订阅的内容
+      const response = await fetch('/api/subscriptions/content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       
-      // TODO: 这里应该调用真实的API
-      // const latestContent = await fetchLatestContent(subscriptions);
-      // setTimelineContent(latestContent);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '刷新内容失败');
+      }
       
-      console.log('获取最新内容完成');
+      const refreshResult = await response.json();
+      console.log(`刷新完成: ${refreshResult.refreshed}/${refreshResult.total} 个订阅，新增 ${refreshResult.newArticles} 条内容`);
+      
+      // 刷新完成后重新加载内容
+      await loadAllContent();
     } catch (error) {
-      console.error('获取最新内容失败:', error);
-      // TODO: 显示错误提示
+      console.error('刷新最新内容失败:', error);
     } finally {
-      setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -147,11 +195,11 @@ export function InspirationMarket({ locale, messages }: { locale: AppLocale; mes
             <div className="flex items-center gap-3">
               <button
                 onClick={handleFetchLatestContent}
-                disabled={isLoading || subscriptions.filter(s => s.status === 'active').length === 0}
+                disabled={isRefreshing || isLoading || subscriptions.filter(s => s.status === 'active').length === 0}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
               >
-                <Icons.refresh className={cn("w-4 h-4", isLoading && "animate-spin")} />
-                {isLoading ? '获取中...' : '获取最新内容'}
+                <Icons.refresh className={cn("w-4 h-4", (isRefreshing || isLoading) && "animate-spin")} />
+                {isRefreshing ? '刷新中...' : isLoading ? '加载中...' : '获取最新内容'}
               </button>
               {subscriptions.filter(s => s.status === 'active').length === 0 && (
                 <p className="text-sm text-muted-foreground">

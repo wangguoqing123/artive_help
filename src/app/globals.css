@@ -149,12 +149,12 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: box-shadow 0.15s ease; /* 简化过渡，减少时间 */
 }
 
 .card:hover {
   box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+  /* 移除transform以减少重排 */
 }
 
 .card-premium {
@@ -186,9 +186,10 @@ body {
   font-size: 0.875rem;
   font-weight: 500;
   padding: 0.625rem 1rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease, color 0.15s ease; /* 只过渡必要属性 */
   cursor: pointer;
   user-select: none;
+  will-change: background-color; /* 优化渲染 */
 }
 
 .btn:disabled {
@@ -205,8 +206,8 @@ body {
 
 .btn-primary:hover {
   box-shadow: var(--shadow-lg);
-  transform: translateY(-1px);
   filter: brightness(1.05);
+  /* 移除transform */
 }
 
 .btn-secondary {
@@ -217,8 +218,8 @@ body {
 
 .btn-secondary:hover {
   background-color: var(--accent);
-  transform: translateY(-1px);
   box-shadow: var(--shadow);
+  /* 移除transform */
 }
 
 .btn-outline {
@@ -230,8 +231,8 @@ body {
 .btn-outline:hover {
   background-color: var(--primary);
   color: var(--primary-foreground);
-  transform: translateY(-1px);
   box-shadow: var(--shadow);
+  /* 移除transform */
 }
 
 .btn-ghost {
@@ -242,7 +243,7 @@ body {
 
 .btn-ghost:hover {
   background-color: var(--muted);
-  transform: translateY(-1px);
+  /* 移除transform */
 }
 
 .btn-sm {
@@ -265,7 +266,7 @@ body {
   background-color: var(--input);
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease; /* 简化过渡 */
 }
 
 .input:focus {
@@ -326,23 +327,23 @@ body {
   }
 }
 
+/* 简化动画时间 */
 .animate-fade-in {
-  animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeIn 0.2s ease-out;
 }
 
 .animate-slide-in {
-  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideIn 0.15s ease-out;
 }
 
 .animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: pulse 3s ease-in-out infinite; /* 减少动画频率 */
 }
 
-/* Glass Effect */
+/* Glass Effect - 简化以提升性能 */
 .glass {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+  /* 移除backdrop-filter以提升性能 */
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -525,4 +526,14 @@ body {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+}
+
+/* Disable entry animations globally to avoid initial flash */
+.animate-fade-in,
+.animate-slide-in,
+.animate-scale-in,
+.animate-in,
+.fade-in,
+.slide-in-from-top-2 {
+  animation: none;
 }

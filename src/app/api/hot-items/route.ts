@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { TophubApiResponse, TophubItem, HotItem } from '@/types';
 
-const TOPHUB_BASE_URL = process.env.TOPHUB_BASE_URL || 'https://www.tophubdata.com/api';
+const TOPHUB_BASE_URL = process.env.TOPHUB_BASE_URL || 'https://api.tophubdata.com';
 const TOPHUB_API_KEY = process.env.TOPHUB_API_KEY;
 
 // 固定的4个榜单配置
@@ -29,22 +29,33 @@ const FIXED_BOARDS = [
 ];
 
 async function tophubFetch<T>(endpoint: string): Promise<T> {
-  if (!TOPHUB_API_KEY) {
-    throw new Error('Tophub API key not configured');
+  // 检查 API 密钥是否配置且有效（不是默认的占位符）
+  if (!TOPHUB_API_KEY || TOPHUB_API_KEY.includes('your_') || TOPHUB_API_KEY.includes('api_key_here')) {
+    throw new Error('Tophub API key not configured or invalid');
   }
 
-  const response = await fetch(`${TOPHUB_BASE_URL}${endpoint}`, {
+  const fullUrl = `${TOPHUB_BASE_URL}${endpoint}`;
+  console.log(`🔗 API 请求: ${fullUrl}`);
+  console.log(`🔑 使用密钥: ${TOPHUB_API_KEY.substring(0, 10)}...`);
+
+  const response = await fetch(fullUrl, {
     headers: {
       'Authorization': TOPHUB_API_KEY,
       'Content-Type': 'application/json',
     },
   });
 
+  console.log(`📊 API 响应状态: ${response.status} ${response.statusText}`);
+
   if (!response.ok) {
-    throw new Error(`Tophub API error: ${response.status} ${response.statusText}`);
+    const errorText = await response.text();
+    console.error(`❌ API 错误详情: ${errorText}`);
+    throw new Error(`Tophub API error: ${response.status} ${response.statusText} - ${errorText}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log(`✅ API 响应数据类型: ${typeof data}, 包含: ${Object.keys(data || {}).join(', ')}`);
+  return data;
 }
 
 function convertTophubItemToHotItem(tophubItem: any, source: HotItem['source']): HotItem {
@@ -78,6 +89,12 @@ function convertTophubItemToHotItem(tophubItem: any, source: HotItem['source']):
 
 export async function GET() {
   try {
+    // 检查 API 配置
+    if (!TOPHUB_API_KEY || TOPHUB_API_KEY.includes('your_') || TOPHUB_API_KEY.includes('api_key_here')) {
+      console.log('⚠️ Tophub API 未配置或使用默认值，直接使用模拟数据');
+      throw new Error('Tophub API key not configured');
+    }
+
     // 并行获取4个固定榜单的数据
     console.log('🚀 开始获取固定榜单数据...');
     
@@ -138,17 +155,29 @@ export async function GET() {
     
     return NextResponse.json(allHotItems);
   } catch (error) {
-    console.warn('Tophub API 不可用，使用模拟数据:', error);
+    console.log('📝 Tophub API 不可用，使用模拟数据');
     
-    // 回退到模拟数据
+    // 回退到模拟数据 - 提供更真实的示例内容
     const sources = ["weixin", "weixin_tech", "zhihu", "weibo"] as const;
+    const mockTitles = [
+      "AI 助手技术突破：新一代语言模型发布",
+      "科技巨头争相布局人工智能赛道",
+      "如何用 AI 提升工作效率？实用技巧分享",
+      "热门话题：ChatGPT 与传统搜索引擎的对比",
+      "前端开发新趋势：AI 辅助编程工具盘点",
+      "深度学习在图像识别领域的最新进展"
+    ];
+    
     const mockData = Array.from({ length: 24 }).map((_, i) => ({
       id: `mock-${sources[i % 4]}-${i}`,
-      title: `AI 热点 ${i + 1}`,
-      summary: "这是一段自动生成的摘要，用于占位展示。",
-      heat: 1000 - i * 13,
+      title: mockTitles[i % mockTitles.length] || `热点资讯 ${i + 1}`,
+      summary: "这是一条模拟的热点资讯摘要，用于展示页面布局和功能。实际使用时会显示真实的热点内容。",
+      heat: Math.floor(Math.random() * 5000) + 1000,
       source: sources[i % 4],
       url: "https://example.com",
+      cover: undefined,
+      timestamp: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
+      mobile_url: "https://example.com"
     }));
     
     return NextResponse.json(mockData);

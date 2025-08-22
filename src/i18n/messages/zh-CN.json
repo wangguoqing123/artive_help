@@ -8,6 +8,12 @@
       "openMenu": "打开菜单",
       "closeMenu": "关闭菜单"
     },
+    "auth": {
+      "login": "登录",
+      "logout": "退出登录",
+      "loginAccount": "登录账户",
+      "user": "用户"
+    },
     "title": "公众号内容管理系统",
     "nav": {
       "dashboard": "首页",

@@ -59,13 +59,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         console.log('认证状态变化:', event, session ? '已登录' : '未登录') // 调试日志
         
+        // 立即更新状态
         setSession(session)
         setUser(session?.user ?? null)
         setLoading(false)
         
-        // 如果是登录成功，刷新页面以更新UI
+        // 处理不同的认证事件
         if (event === 'SIGNED_IN') {
-          window.location.reload()
+          console.log('用户登录成功，用户信息:', session?.user) // 调试日志
+          // 不需要刷新页面，状态已经更新
+        } else if (event === 'SIGNED_OUT') {
+          console.log('用户已退出登录') // 调试日志
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('会话令牌已刷新') // 调试日志
+        } else if (event === 'USER_UPDATED') {
+          console.log('用户信息已更新') // 调试日志
         }
       }
     )

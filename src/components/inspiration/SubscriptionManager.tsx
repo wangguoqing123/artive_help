@@ -44,71 +44,54 @@ export function SubscriptionManager({
     tags: string[];
   }>({ displayName: "", tags: [] });
 
-  // 模拟搜索API
-  const mockSearchResults: SubscriptionSearchResult[] = [
-    {
-      id: "yt-1",
-      platform: "youtube",
-      name: "李永乐老师",
-      avatar: "https://yt3.ggpht.com/a/default-user=s88-c-k-c0x00ffffff-no-rj",
-      description: "用理科思维看世界，分享科学知识",
-      followerCount: 1200000,
-      url: "https://youtube.com/@liyongle",
-      isSubscribed: false
-    },
-    {
-      id: "wx-1", 
-      platform: "wechat",
-      name: "36氪",
-      avatar: "https://wx.qlogo.cn/mmhead/Q3auHgzwzM4fgHg/132",
-      description: "让一部分人先看到未来",
-      followerCount: 500000,
-      url: "https://mp.weixin.qq.com/profile?src=3&timestamp=1234567890&ver=1&signature=example",
-      isSubscribed: false
-    }
-  ];
+  // 内容获取状态
+  const [fetchingContentIds, setFetchingContentIds] = useState<Set<string>>(new Set());
+  const [fetchProgress, setFetchProgress] = useState<Record<string, {
+    current: number;
+    total: number;
+    status: string;
+  }>>({});
 
-  // 模拟现有订阅数据
-  const mockSubscriptions: Subscription[] = [
-    {
-      id: "sub-1",
-      platform: "youtube",
-      name: "李永乐老师",
-      displayName: "永乐老师",
-      avatar: "https://yt3.ggpht.com/a/default-user=s88-c-k-c0x00ffffff-no-rj",
-      url: "https://youtube.com/@liyongle",
-      description: "用理科思维看世界，分享科学知识",
-      followerCount: 1200000,
-      status: "active",
-      tags: ["科普", "教育"],
-      defaultTags: ["科普"],
-      lastSyncAt: "2025-01-18T10:30:00Z",
-      createdAt: "2025-01-15T08:00:00Z",
-      updatedAt: "2025-01-18T10:30:00Z"
-    },
-    {
-      id: "sub-2", 
-      platform: "wechat",
-      name: "36氪",
-      avatar: "https://wx.qlogo.cn/mmhead/Q3auHgzwzM4fgHg/132",
-      url: "https://mp.weixin.qq.com/profile?src=3&timestamp=1234567890&ver=1&signature=example",
-      description: "让一部分人先看到未来",
-      followerCount: 500000,
-      status: "active",
-      tags: ["科技", "创业"],
-      defaultTags: ["科技"],
-      lastSyncAt: "2025-01-18T09:15:00Z",
-      createdAt: "2025-01-10T12:00:00Z",
-      updatedAt: "2025-01-18T09:15:00Z"
-    }
-  ];
+  // 从数据库加载的订阅列表（废弃模拟数据）
 
-  // 初始化mock数据
+  // 从数据库加载订阅列表
   useEffect(() => {
-    if (subscriptions.length === 0) {
-      onSubscriptionsUpdate(mockSubscriptions);
-    }
-  }, [subscriptions.length, onSubscriptionsUpdate]);
+    const loadSubscriptions = async () => {
+      try {
+        const response = await fetch('/api/subscriptions');
+        if (response.ok) {
+          const data = await response.json();
+          // 转换数据库数据为前端格式
+          const formattedSubscriptions = data.subscriptions.map((sub: any) => ({
+            id: sub.id,
+            platform: sub.type as Platform,
+            name: sub.account?.name || '',
+            avatar: sub.account?.avatar_url || "https://wx.qlogo.cn/mmhead/Q3auHgzwzM4fgHg/132",
+            url: `https://mp.weixin.qq.com/${sub.account?.account_id}`,
+            description: sub.account?.description,
+            followerCount: 0, // 可以后续从API获取
+            status: 'active' as SubscriptionStatus,
+            tags: [],
+            defaultTags: [],
+            lastSyncAt: sub.subscribedAt,
+            createdAt: sub.subscribedAt,
+            updatedAt: sub.subscribedAt,
+          }));
+          
+          // 更新订阅列表，即使为空也要更新（确保显示真实数据）
+          onSubscriptionsUpdate(formattedSubscriptions);
+        }
+      } catch (error) {
+        console.error('加载订阅列表失败:', error);
+        // 加载失败时显示空列表，不使用模拟数据
+        if (subscriptions.length === 0) {
+          onSubscriptionsUpdate([]);
+        }
+      }
+    };
+
+    loadSubscriptions();
+  }, []); // 只在组件挂载时执行一次
 
   // 点击外部关闭搜索结果
   useEffect(() => {
@@ -225,7 +208,71 @@ export function SubscriptionManager({
     }
   };
 
-  // 添加订阅（支持微信公众号）
+  // 获取微信内容
+  const handleFetchContent = async (subscriptionId: string, isManualRefresh = false) => {
+    // 防止重复获取
+    if (fetchingContentIds.has(subscriptionId)) {
+      push("正在获取内容，请稍后...", "warning");
+      return;
+    }
+
+    try {
+      setFetchingContentIds(prev => new Set(prev).add(subscriptionId));
+      setFetchProgress(prev => ({ 
+        ...prev, 
+        [subscriptionId]: { current: 0, total: 5, status: '正在获取历史内容...' }
+      }));
+
+      const response = await fetch('/api/wechat/content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subscriptionId,
+          isManualRefresh
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          // 刷新限制
+          push(`${result.error}`, "warning");
+        } else {
+          throw new Error(result.error || '获取内容失败');
+        }
+        return;
+      }
+
+      // 显示获取结果
+      if (result.newArticles > 0) {
+        push(`获取完成！新增 ${result.newArticles} 篇文章（共获取 ${result.totalArticles} 篇）`, "success");
+      } else if (result.totalArticles > 0) {
+        push(`获取完成！共 ${result.totalArticles} 篇文章（无新内容）`, "info");
+      } else {
+        push("获取完成，但未找到文章内容", "info");
+      }
+
+    } catch (error) {
+      console.error('获取内容失败:', error);
+      push(error instanceof Error ? error.message : '获取内容失败，请稍后重试', "error");
+    } finally {
+      setFetchingContentIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(subscriptionId);
+        return newSet;
+      });
+      setFetchProgress(prev => {
+        const newProgress = { ...prev };
+        delete newProgress[subscriptionId];
+        return newProgress;
+      });
+    }
+  };
+
+  // 添加订阅（支持微信公众号）- 连接真实数据库
   const handleWechatSubscribe = async (account: WechatAccountSearchResult) => {
     if (subscriptions.length >= 200) {
       push("订阅数量已达上限（200个），请先删除一些订阅", "error");
@@ -242,31 +289,76 @@ export function SubscriptionManager({
       return;
     }
 
-    const newSubscription: Subscription = {
-      id: `sub-${Date.now()}`,
-      platform: "wechat",
-      name: account.wxName,
-      avatar: account.wxAvatar || "https://wx.qlogo.cn/mmhead/Q3auHgzwzM4fgHg/132",
-      url: `https://mp.weixin.qq.com/${account.wxId}`,
-      description: account.description,
-      followerCount: account.followerCount,
-      status: "active",
-      tags: [],
-      defaultTags: [],
-      lastSyncAt: account.latestPublish,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    try {
+      const requestData = {
+        accountId: account.biz || account.wxId, // 优先使用biz，备用wxId
+        name: account.wxName,
+        description: account.description,
+        avatarUrl: account.wxAvatar,
+        verified: false, // 可以根据实际情况设置
+      };
+      
+      console.log('=== 前端创建订阅调试信息 ===');
+      console.log('公众号信息:', {
+        name: account.wxName,
+        biz: account.biz,
+        wxId: account.wxId,
+        ghid: account.ghid
+      });
+      console.log('发送给后端的数据:', requestData);
 
-    const updatedSubscriptions = [...subscriptions, newSubscription];
-    onSubscriptionsUpdate(updatedSubscriptions);
-    
-    // 更新搜索结果，标记为已订阅
-    setWechatSearchResult(null);
-    setShowSearchResults(false);
-    setSearchQuery("");
+      // 调用订阅API，将数据保存到数据库
+      const response = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
 
-    push(`成功订阅公众号：${account.wxName}`, "success");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || '订阅失败');
+      }
+
+      const result = await response.json();
+
+      // 创建新的订阅对象，添加到本地状态
+      const newSubscription: Subscription = {
+        id: result.subscriptionId,
+        platform: "wechat",
+        name: account.wxName,
+        avatar: account.wxAvatar || "https://wx.qlogo.cn/mmhead/Q3auHgzwzM4fgHg/132",
+        url: `https://mp.weixin.qq.com/${account.wxId}`,
+        description: account.description,
+        followerCount: account.followerCount,
+        status: "active",
+        tags: [],
+        defaultTags: [],
+        lastSyncAt: account.latestPublish,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      const updatedSubscriptions = [...subscriptions, newSubscription];
+      onSubscriptionsUpdate(updatedSubscriptions);
+      
+      // 更新搜索结果，标记为已订阅
+      setWechatSearchResult(null);
+      setShowSearchResults(false);
+      setSearchQuery("");
+
+      push(`成功订阅公众号：${account.wxName}，正在获取历史内容...`, "success");
+      
+      // 自动获取历史内容
+      setTimeout(() => {
+        handleFetchContent(result.subscriptionId, false);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('订阅失败:', error);
+      push(error instanceof Error ? error.message : '订阅失败，请稍后重试', "error");
+    }
   };
 
   // 添加订阅（兼容旧版）
@@ -276,32 +368,62 @@ export function SubscriptionManager({
       return;
     }
 
-    const newSubscription: Subscription = {
-      id: `sub-${Date.now()}`,
-      platform: result.platform,
-      name: result.name,
-      avatar: result.avatar,
-      url: result.url,
-      description: result.description,
-      followerCount: result.followerCount,
-      status: "active",
-      tags: [],
-      defaultTags: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    try {
+      // 调用后端API创建订阅
+      const response = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accountId: (result as any).biz || (result as any).wxId, // 使用biz作为主要ID，备用wxId
+          name: result.name,
+          description: result.description,
+          avatarUrl: result.avatar,
+          verified: false
+        })
+      });
 
-    const updatedSubscriptions = [...subscriptions, newSubscription];
-    onSubscriptionsUpdate(updatedSubscriptions);
-    
-    // 更新搜索结果状态
-    setSearchResults(prev => 
-      prev.map(item => 
-        item.id === result.id ? { ...item, isSubscribed: true } : item
-      )
-    );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '订阅失败');
+      }
 
-    push("订阅成功！开始采集近期内容（约1-2分钟）", "success");
+      const subscriptionData = await response.json();
+      console.log('订阅创建成功:', subscriptionData);
+
+      // 创建前端订阅对象
+      const newSubscription: Subscription = {
+        id: subscriptionData.subscriptionId || `sub-${Date.now()}`,
+        platform: result.platform,
+        name: result.name,
+        avatar: result.avatar,
+        url: result.url,
+        description: result.description,
+        followerCount: result.followerCount,
+        status: "active",
+        tags: [],
+        defaultTags: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      const updatedSubscriptions = [...subscriptions, newSubscription];
+      onSubscriptionsUpdate(updatedSubscriptions);
+      
+      // 更新搜索结果状态
+      setSearchResults(prev => 
+        prev.map(item => 
+          item.id === result.id ? { ...item, isSubscribed: true } : item
+        )
+      );
+
+      push("订阅成功！开始采集近期内容（约1-2分钟）", "success");
+
+    } catch (error) {
+      console.error('订阅失败:', error);
+      push(error instanceof Error ? error.message : '订阅失败，请重试', "error");
+    }
   };
 
   // 更新订阅状态
@@ -628,43 +750,84 @@ export function SubscriptionManager({
                       )}
                     </div>
                     
-                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                      {isEditing ? (
-                        <>
-                          <Button size="sm" onClick={saveEdit}>保存</Button>
-                          <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>取消</Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => startEdit(subscription)}
-                          >
-                            <Icons.edit className="w-4 h-4 sm:mr-0" />
-                            <span className="sm:hidden ml-1">编辑</span>
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleStatusToggle(
-                              subscription.id, 
-                              subscription.status === 'active' ? 'inactive' : 'active'
-                            )}
-                          >
-                            {subscription.status === 'active' ? '停用' : '启用'}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDelete(subscription.id)}
-                            className="text-red-600 hover:text-red-700 hover:border-red-200"
-                          >
-                            <Icons.trash className="w-4 h-4 sm:mr-0" />
-                            <span className="sm:hidden ml-1">删除</span>
-                          </Button>
-                        </>
+                    <div className="flex flex-col gap-2 w-full sm:w-auto">
+                      {/* 内容获取进度 */}
+                      {fetchingContentIds.has(subscription.id) && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-2">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Icons.loader className="w-4 h-4 animate-spin text-blue-500" />
+                            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                              {fetchProgress[subscription.id]?.status || '正在获取内容...'}
+                            </span>
+                          </div>
+                          {fetchProgress[subscription.id] && (
+                            <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
+                              <div 
+                                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                style={{ 
+                                  width: `${(fetchProgress[subscription.id].current / fetchProgress[subscription.id].total) * 100}%` 
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
                       )}
+                      
+                      <div className="flex flex-wrap gap-2">
+                        {isEditing ? (
+                          <>
+                            <Button size="sm" onClick={saveEdit}>保存</Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>取消</Button>
+                          </>
+                        ) : (
+                          <>
+                            {/* 内容获取按钮（仅微信公众号显示） */}
+                            {subscription.platform === 'wechat' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleFetchContent(subscription.id, true)}
+                                disabled={fetchingContentIds.has(subscription.id)}
+                                className="text-blue-600 hover:text-blue-700 hover:border-blue-200"
+                              >
+                                {fetchingContentIds.has(subscription.id) ? (
+                                  <Icons.loader className="w-4 h-4 animate-spin sm:mr-0" />
+                                ) : (
+                                  <Icons.refresh className="w-4 h-4 sm:mr-0" />
+                                )}
+                                <span className="sm:hidden ml-1">获取最新</span>
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => startEdit(subscription)}
+                            >
+                              <Icons.edit className="w-4 h-4 sm:mr-0" />
+                              <span className="sm:hidden ml-1">编辑</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleStatusToggle(
+                                subscription.id, 
+                                subscription.status === 'active' ? 'inactive' : 'active'
+                              )}
+                            >
+                              {subscription.status === 'active' ? '停用' : '启用'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDelete(subscription.id)}
+                              className="text-red-600 hover:text-red-700 hover:border-red-200"
+                            >
+                              <Icons.trash className="w-4 h-4 sm:mr-0" />
+                              <span className="sm:hidden ml-1">删除</span>
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

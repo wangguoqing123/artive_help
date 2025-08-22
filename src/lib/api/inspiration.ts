@@ -78,36 +78,21 @@ export async function searchWechatAccount(keyword: string): Promise<ApiResponse<
     
     lastRequestTime = Date.now();
     
-    // 构建请求URL
-    const url = `${API_BASE_URL}/fbmain/monitor/v3/wx_account/search`;
-    
-    // 构建form-urlencoded格式的请求体
-    const params = new URLSearchParams({
-      keyword: keyword.trim(),
-      page: '1',
-      size: '10',
-      key: API_KEY,
-      verifycode: '' // 可选的验证码
-    });
-    
-    // 构建请求头 - 使用form-urlencoded
-    const headers: HeadersInit = {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json',
-    };
+    // 使用后端代理API（避免CORS问题）
+    // 后端会处理实际的大家啦API调用
     
     // 打印调试信息
     console.log('=== 搜索API调试信息 ===');
-    console.log('请求URL:', url);
-    console.log('请求方法: POST');
-    console.log('请求参数:', params.toString());
-    console.log('API Key:', API_KEY ? `${API_KEY.substring(0, 5)}...` : '未设置');
+    console.log('使用后端代理: /api/wechat/search');
+    console.log('搜索关键词:', keyword.trim());
     
-    // 调用搜索API - 使用POST方法和form-urlencoded格式
-    const response = await fetch(url, {
+    // 调用后端代理API
+    const response = await fetch('/api/wechat/search', {
       method: 'POST',
-      headers,
-      body: params.toString(),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ keyword: keyword.trim() }),
     });
     
     // 打印响应信息
@@ -147,23 +132,11 @@ export async function searchWechatAccount(keyword: string): Promise<ApiResponse<
     }
 
     // 解析响应
-    let result: DajialaApiResponse;
+    let result: any;
     
     try {
-      const responseText = await response.text();
-      console.log('原始响应文本:', responseText);
-      
-      if (!responseText || responseText.trim() === '') {
-        console.error('API返回空响应');
-        return {
-          code: 500,
-          message: 'API返回空响应，请稍后重试',
-          data: null
-        };
-      }
-      
-      result = JSON.parse(responseText);
-      console.log('解析后的API响应:', result);
+      result = await response.json();
+      console.log('API响应结果:', result);
     } catch (parseError) {
       console.error('解析响应失败:', parseError);
       return {
@@ -173,104 +146,12 @@ export async function searchWechatAccount(keyword: string): Promise<ApiResponse<
       };
     }
     
-    // 验证响应对象
-    if (!result || typeof result !== 'object') {
-      console.error('无效的响应格式:', result);
-      return {
-        code: 500,
-        message: '响应格式无效，请稍后重试',
-        data: null
-      };
-    }
-    
-    // 检查result是否有code字段（API可能返回不同格式）
-    if (!('code' in result)) {
-      console.error('响应缺少code字段:', result);
-      
-      // 尝试检查是否有其他错误信息
-      if ('message' in result || 'error' in result) {
-        return {
-          code: 500,
-          message: (result as any).message || (result as any).error || '服务器返回错误',
-          data: null
-        };
-      }
-      
-      return {
-        code: 500,
-        message: '响应格式不正确，请稍后重试',
-        data: null
-      };
-    }
-    
-    // 处理大家啦API的响应
-    if (result.code === 0 && result.data && result.data.length > 0) {
-      // 搜索成功，找到公众号
-      // 尝试找到最精确匹配的结果
-      const searchKeywordLower = keyword.trim().toLowerCase();
-      let bestMatch = result.data.find(item => 
-        item.name.toLowerCase() === searchKeywordLower
-      );
-      
-      // 如果没有精确匹配，找最相似的
-      if (!bestMatch) {
-        bestMatch = result.data.find(item => 
-          item.name.toLowerCase().includes(searchKeywordLower) ||
-          searchKeywordLower.includes(item.name.toLowerCase())
-        );
-      }
-      
-      // 如果还是没有，使用第一个结果
-      if (!bestMatch) {
-        bestMatch = result.data[0];
-      }
-      
-      // 转换为我们的格式
-      const transformedResult: WechatAccountSearchResult = {
-        wxId: bestMatch.wxid || bestMatch.ghid || `wx_${Date.now()}`,
-        wxName: bestMatch.name,
-        wxAvatar: bestMatch.avatar || 'https://wx.qlogo.cn/mmhead/Q3auHgzwzM4fgHg/132',
-        description: bestMatch.owner_name || bestMatch.customer_type || '',
-        followerCount: bestMatch.fans || 0,
-        articleCount: parseInt(String(bestMatch.week_articles)) || 0,
-        latestPublish: bestMatch.lastest_publish ? new Date(bestMatch.lastest_publish * 1000).toISOString() : undefined,
-        biz: bestMatch.biz,
-        ghid: bestMatch.ghid
-      };
-      
-      console.log('转换后的结果:', transformedResult);
-      
-      return {
-        code: 200,
-        message: '搜索成功',
-        data: transformedResult
-      };
-    } else if (result.code === 0 && (!result.data || result.data.length === 0)) {
-      // 搜索成功但没有找到结果
-      return {
-        code: 404,
-        message: `未找到名为"${keyword}"的公众号，请检查名称是否正确`,
-        data: null
-      };
-    } else {
-      // API返回错误
-      console.error('API错误响应:', result);
-      
-      // 特殊错误码处理
-      if (result.code === 20001) {
-        return {
-          code: 403,
-          message: 'API余额不足，请联系管理员充值',
-          data: null
-        };
-      }
-      
-      return {
-        code: result.code || 500,
-        message: result.msg || '系统错误，请稍后重试',
-        data: null
-      };
-    }
+    // 直接返回后端API的响应（已经是标准格式）
+    return {
+      code: result.code,
+      message: result.message,
+      data: result.data
+    };
   } catch (error) {
     // 网络或解析错误
     console.error('=== 搜索公众号发生错误 ===');

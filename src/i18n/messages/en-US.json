@@ -8,6 +8,12 @@
       "openMenu": "Open Menu",
       "closeMenu": "Close Menu"
     },
+    "auth": {
+      "login": "Log in",
+      "logout": "Log out",
+      "loginAccount": "Sign in",
+      "user": "User"
+    },
     "title": "WeChat Content Manager",
     "nav": {
       "dashboard": "Dashboard",

@@ -68,68 +68,109 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     setIsLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
+    // 使用 signInWithOtp 并明确不设置任何重定向 URL
+    // 这样会强制 Supabase 发送包含验证码的邮件
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email: email,
       options: {
-        shouldCreateUser: true,
+        shouldCreateUser: true, // 如果用户不存在则创建新用户
+        // 关键：完全不设置 emailRedirectTo
+        // 这会让 Supabase 发送纯 OTP 验证码
+        data: {
+          // 可以传递额外的元数据
+          source: 'web_app'
+        }
       },
     })
 
     setIsLoading(false)
 
     if (error) {
-      setError(error.message)
+      console.error('发送验证码失败:', error) // 调试日志
+      // 提供更友好的错误提示
+      if (error.message.includes('rate limit')) {
+        setError('发送太频繁，请等待 1 小时后再试')
+      } else if (error.message.includes('Email rate limit exceeded')) {
+        setError('邮件发送次数超限，请 1 小时后再试')
+      } else {
+        setError(error.message)
+      }
     } else {
+      console.log('OTP 发送响应:', data) // 调试：查看返回的数据
       setStep('otp')
-      setCountdown(60)
+      setCountdown(60) // 60秒后才能重新发送
     }
   }
 
-  const handleVerifyOTP = async () => {
-    const otpCode = otp.join('')
-    if (otpCode.length !== 6) {
-      setError('请输入完整的6位验证码')
+  const handleVerifyOTP = async (customOtpCode?: string) => {
+    // 可以传入自定义的验证码，或使用状态中的验证码
+    const otpCode = customOtpCode || otp.join('')
+    
+    console.log('开始验证 OTP:', otpCode, '长度:', otpCode.length) // 调试日志
+    
+    // 确保验证码是6位数字
+    if (!otpCode || otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
+      console.log('OTP 格式不正确:', otpCode) // 调试日志
+      setError('请输入完整的6位数字验证码')
       return
     }
 
     setIsLoading(true)
     setError(null)
 
+    // 修复：使用正确的 type 参数
+    // Supabase 的 OTP 类型应该是 'email' 用于邮箱验证码
     const { data, error } = await supabase.auth.verifyOtp({
       email,
       token: otpCode,
-      type: 'email',
+      type: 'email', // 这个类型是正确的，用于验证邮件中的6位数字码
     })
 
     setIsLoading(false)
 
     if (error) {
-      setError(error.message)
+      console.error('OTP 验证失败:', error) // 调试日志
+      // 提供更友好的错误信息
+      if (error.message.includes('expired') || error.message.includes('invalid')) {
+        setError('验证码已过期或无效，请重新发送')
+      } else {
+        setError(error.message)
+      }
     } else if (data.user) {
+      console.log('OTP 验证成功，用户:', data.user.email) // 调试日志
       onSuccess?.(data.user)
       handleClose()
+    } else {
+      console.log('OTP 验证返回但没有用户数据') // 调试日志
+      setError('验证失败，请重试')
     }
   }
 
   const handleOTPChange = (index: number, value: string) => {
-    if (value.length > 1) return
+    // 只允许输入数字
+    if (value && !/^\d$/.test(value)) return
     
     const newOtp = [...otp]
     newOtp[index] = value
     setOtp(newOtp)
 
-    // Auto-focus next input
+    console.log(`OTP 输入 - 位置 ${index}: ${value}, 完整码: ${newOtp.join('')}`) // 调试日志
+
+    // 自动跳转到下一个输入框
     if (value && index < 5) {
       const nextInput = document.getElementById(`otp-${index + 1}`)
       nextInput?.focus()
     }
 
-    // Auto-submit when all fields are filled
-    if (index === 5 && value && newOtp.every(digit => digit)) {
-      const otpCode = newOtp.join('')
-      if (otpCode.length === 6) {
-        handleVerifyOTP()
-      }
+    // 检查是否输入了完整的6位验证码，自动触发验证
+    const completeOtp = newOtp.join('')
+    if (completeOtp.length === 6 && newOtp.every(digit => digit !== '')) {
+      console.log('6位验证码输入完成，准备自动验证:', completeOtp) // 调试日志
+      // 延迟执行，确保状态已更新
+      setTimeout(() => {
+        console.log('触发自动验证，验证码:', completeOtp) // 调试日志
+        handleVerifyOTP(completeOtp) // 直接传入完整的验证码
+      }, 100)
     }
   }
 
@@ -279,7 +320,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                         ) : (
                           <span className="flex items-center justify-center gap-2">
                             <Mail className="w-5 h-5" />
-                            发送验证码
+                            发送登录验证码
                           </span>
                         )}
                       </button>
@@ -287,50 +328,94 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   </>
                 ) : (
                   <>
-                    {/* OTP Input */}
-                    <div className="space-y-4">
-                      <div className="flex justify-center gap-2">
-                        {otp.map((digit, index) => (
-                          <input
-                            key={index}
-                            id={`otp-${index}`}
-                            type="text"
-                            inputMode="numeric"
-                            maxLength={1}
-                            value={digit}
-                            onChange={(e) => handleOTPChange(index, e.target.value)}
-                            onKeyDown={(e) => handleOTPKeyDown(index, e)}
-                            className="w-12 h-12 text-center text-lg font-semibold rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none transition-all duration-200"
-                          />
-                        ))}
+                    {/* 验证码说明 */}
+                    <div className="space-y-6">
+                      <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-6 space-y-4">
+                        <div className="flex items-center justify-center">
+                          <Mail className="w-12 h-12 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div className="text-center space-y-2">
+                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                            验证码已发送！
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            请检查您的邮箱 <span className="font-medium text-gray-900 dark:text-gray-100">{email}</span>
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            输入邮件中的 6 位验证码完成登录
+                          </p>
+                        </div>
                       </div>
 
-                      <button
-                        onClick={handleVerifyOTP}
-                        disabled={isLoading || otp.join('').length !== 6}
-                        className="w-full px-6 py-3 rounded-2xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
-                      >
-                        {isLoading ? (
-                          <span className="flex items-center justify-center gap-2">
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            验证中...
-                          </span>
-                        ) : (
-                          '验证'
-                        )}
-                      </button>
+                      {/* 提示信息 */}
+                      <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
+                        <p className="flex items-start gap-2">
+                          <span className="text-green-600 mt-0.5">•</span>
+                          <span>如果没有收到邮件，请检查垃圾邮件文件夹</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <span className="text-green-600 mt-0.5">•</span>
+                          <span>验证码有效期为 10 分钟</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <span className="text-green-600 mt-0.5">•</span>
+                          <span>请输入邮件中的 6 位数字验证码：</span>
+                        </p>
+                      </div>
+
+                      {/* OTP 验证码输入 */}
+                      <div className="space-y-3">
+                        <div className="flex justify-center gap-2">
+                          {otp.map((digit, index) => (
+                            <input
+                              key={index}
+                              id={`otp-${index}`}
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={1}
+                              value={digit}
+                              onChange={(e) => handleOTPChange(index, e.target.value)}
+                              onKeyDown={(e) => handleOTPKeyDown(index, e)}
+                              className="w-12 h-12 text-center text-lg font-semibold rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none transition-all duration-200"
+                            />
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            const currentOtp = otp.join('')
+                            console.log('手动点击验证按钮，当前验证码:', currentOtp) // 调试日志
+                            handleVerifyOTP(currentOtp)
+                          }}
+                          disabled={isLoading || otp.join('').length !== 6}
+                          className="w-full px-6 py-3 rounded-2xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                          {isLoading ? (
+                            <span className="flex items-center justify-center gap-2">
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                              验证中...
+                            </span>
+                          ) : (
+                            '确认登录'
+                          )}
+                        </button>
+                      </div>
 
                       <div className="text-center">
                         <button
                           onClick={() => {
-                            setStep('email')
-                            setOtp(['', '', '', '', '', ''])
-                            setError(null)
+                            if (countdown === 0) {
+                              handleSendOTP() // 重新发送
+                            } else {
+                              setStep('email')
+                              setOtp(['', '', '', '', '', ''])
+                              setError(null)
+                            }
                           }}
                           disabled={countdown > 0}
                           className="text-sm text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          {countdown > 0 ? `重新发送 (${countdown}s)` : '返回重新发送'}
+                          {countdown > 0 ? `重新发送验证码 (${countdown}s)` : '重新发送验证码'}
                         </button>
                       </div>
                     </div>
