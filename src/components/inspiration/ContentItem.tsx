@@ -9,9 +9,10 @@ import { cn } from "@/lib/utils";
 interface ContentItemProps {
   item: TimelineContent;
   onAddToMaterials: (contentId: string) => void;
+  addLabel?: string;
 }
 
-export function ContentItem({ item, onAddToMaterials }: ContentItemProps) {
+export function ContentItem({ item, onAddToMaterials, addLabel }: ContentItemProps) {
   // 获取平台图标和样式
   const getPlatformInfo = (platform: Platform) => {
     switch (platform) {
@@ -64,6 +65,15 @@ export function ContentItem({ item, onAddToMaterials }: ContentItemProps) {
   const platformInfo = getPlatformInfo(item.platform);
   const PlatformIcon = platformInfo.icon;
 
+  // 获取图片URL，如果是微信图片使用代理
+  const getImageSrc = (thumbnailUrl: string) => {
+    // 如果是微信公众号图片，使用代理服务
+    if (thumbnailUrl && thumbnailUrl.includes('mmbiz.qpic.cn')) {
+      return `/api/proxy/image?url=${encodeURIComponent(thumbnailUrl)}`;
+    }
+    return thumbnailUrl;
+  };
+
   return (
     <Card className="group hover:shadow-lg transition-all duration-200 border-green-100/50 dark:border-green-800/30 bg-gradient-to-br from-white to-green-50/20 dark:from-gray-900 dark:to-green-900/5 hover:border-green-200 dark:hover:border-green-700/50">
       <CardContent className="p-0">
@@ -85,7 +95,10 @@ export function ContentItem({ item, onAddToMaterials }: ContentItemProps) {
               {item.isInMaterials ? (
                 <Icons.checkCircle className="w-3 h-3" />
               ) : (
-                <Icons.plus className="w-3 h-3" />
+                <div className="flex items-center gap-1">
+                  <Icons.plus className="w-3 h-3" />
+                  <span>{addLabel || '添加到素材库'}</span>
+                </div>
               )}
             </Button>
             
@@ -101,12 +114,43 @@ export function ContentItem({ item, onAddToMaterials }: ContentItemProps) {
 
           <div className="flex gap-2 p-2">
             {/* 缩略图 - 放大到与内容等高 */}
-            <div className="relative flex-shrink-0 h-full">
-              <img
-                src={item.thumbnail || '/placeholder-image.jpg'}
-                alt={item.title}
-                className="h-full w-auto max-w-[200px] object-cover rounded-lg"
-              />
+            <div className="relative flex-shrink-0 w-32 h-20">
+              {item.thumbnail && item.thumbnail !== '' ? (
+                <img
+                  src={getImageSrc(item.thumbnail)} // 使用代理服务获取图片
+                  alt={item.title}
+                  onError={(e) => {
+                    // 图片加载失败时的处理逻辑
+                    const target = e.target as HTMLImageElement;
+                    const originalSrc = target.src;
+                    
+                    // 如果代理失败，尝试直接加载原图
+                    if (originalSrc.includes('/api/proxy/image') && !target.hasAttribute('data-direct-tried')) {
+                      target.setAttribute('data-direct-tried', 'true');
+                      target.src = item.thumbnail; // 尝试直接加载原图
+                      console.log('代理失败，尝试直接加载:', item.thumbnail);
+                      return;
+                    }
+                    
+                    // 最终回退到默认图片
+                    target.src = '/placeholder-image.svg';
+                    console.warn('封面图加载最终失败，使用默认图片:', item.thumbnail);
+                  }}
+                  onLoad={() => {
+                    console.log('封面图加载成功:', item.thumbnail);
+                  }}
+                  className="w-full h-full object-cover rounded-lg"
+                  loading="lazy" // 添加懒加载优化
+                />
+              ) : (
+                <div className="w-full h-full bg-muted rounded-lg flex items-center justify-center">
+                  <img
+                    src="/placeholder-image.svg"
+                    alt="暂无封面"
+                    className="w-full h-full object-cover rounded-lg opacity-50"
+                  />
+                </div>
+              )}
               {item.duration && (
                 <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/80 text-white text-xs rounded font-medium">
                   {item.duration}
@@ -126,9 +170,14 @@ export function ContentItem({ item, onAddToMaterials }: ContentItemProps) {
                 <div className="flex items-center gap-2">
                   <div className="relative">
                     <img 
-                      src={item.sourceAvatar} 
+                      src={item.sourceAvatar || '/default-avatar.svg'} 
                       alt={item.sourceName}
-                      className="w-8 h-8 rounded-full object-cover ring-1 ring-white shadow-md"
+                      onError={(e) => {
+                        // 头像加载失败时显示默认头像
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/default-avatar.svg';
+                      }}
+                      className="w-8 h-8 rounded-full object-cover ring-1 ring-white shadow-md bg-muted"
                     />
                     {/* 平台标识 - 更加明显 */}
                     <div className={cn(

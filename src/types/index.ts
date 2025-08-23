@@ -15,6 +15,8 @@ export type Material = {
   title: string;
   source: string;
   collectedAt: string;
+  cover?: string;
+  url?: string;
 };
 
 export type Article = {

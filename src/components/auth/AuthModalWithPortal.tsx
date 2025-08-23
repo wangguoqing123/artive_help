@@ -97,9 +97,9 @@ export default function AuthModalWithPortal({ isOpen, onClose, onSuccess }: Auth
     }
   }
 
-  const handleVerifyOTP = async () => {
-    const otpCode = otp.join('')
-    if (otpCode.length !== 6) {
+  const handleVerifyOTP = async (customOtpCode?: string) => {
+    const otpCode = customOtpCode || otp.join('')
+    if (!otpCode || otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
       setError('请输入完整的6位验证码')
       return
     }
@@ -124,8 +124,9 @@ export default function AuthModalWithPortal({ isOpen, onClose, onSuccess }: Auth
   }
 
   const handleOTPChange = (index: number, value: string) => {
-    if (value.length > 1) return
-    
+    // 仅允许输入单个数字
+    if (value && !/^\d$/.test(value)) return
+
     const newOtp = [...otp]
     newOtp[index] = value
     setOtp(newOtp)
@@ -135,11 +136,10 @@ export default function AuthModalWithPortal({ isOpen, onClose, onSuccess }: Auth
       nextInput?.focus()
     }
 
-    if (index === 5 && value && newOtp.every(digit => digit)) {
-      const otpCode = newOtp.join('')
-      if (otpCode.length === 6) {
-        handleVerifyOTP()
-      }
+    // 6 位输入完成后自动验证（使用最新值）
+    const completeOtp = newOtp.join('')
+    if (completeOtp.length === 6 && newOtp.every(digit => digit !== '')) {
+      handleVerifyOTP(completeOtp)
     }
   }
 
@@ -323,7 +323,7 @@ export default function AuthModalWithPortal({ isOpen, onClose, onSuccess }: Auth
                         </div>
 
                         <button
-                          onClick={handleVerifyOTP}
+                          onClick={() => handleVerifyOTP(otp.join(''))}
                           disabled={isLoading || otp.join('').length !== 6}
                           className="w-full px-6 py-3 rounded-2xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
                         >

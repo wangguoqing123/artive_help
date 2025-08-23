@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import { TimelineContentList } from "./TimelineContentList";
+import { ContentSkeleton } from "./ContentSkeleton";
 
 interface TimelineSectionProps {
   content: TimelineContent[];
@@ -162,6 +163,7 @@ export function TimelineSection({
     onFilterChange({ ...filter, ...updates });
   };
 
+
   // 获取平台图标和样式
   const getPlatformInfo = (platform: Platform) => {
     switch (platform) {
@@ -200,6 +202,10 @@ export function TimelineSection({
     }
   };
 
+  // 如果正在加载内容，显示骨架
+  if (isLoading) {
+    return <ContentSkeleton count={6} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -373,6 +379,7 @@ export function TimelineSection({
         isLoading={isLoading}
         onAddToMaterials={onAddToMaterials}
         onLoadMore={loadMore}
+        addLabel={t("app.actions.addToLibrary")}
       />
     </div>
   );

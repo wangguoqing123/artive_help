@@ -36,6 +36,15 @@ interface ContentListProps {
 export function ContentList({ subscriptionId, subscriptionName }: ContentListProps) {
   const { push } = useToast();
   
+  // 代理微信图片，绕过防盗链
+  const getImageSrc = (url?: string) => {
+    if (!url) return url as any;
+    if (url.includes('mmbiz.qpic.cn') || url.includes('qlogo.cn')) {
+      return `/api/proxy/image?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+  };
+  
   // 状态管理
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
@@ -218,12 +227,18 @@ export function ContentList({ subscriptionId, subscriptionName }: ContentListPro
                   {content.cover_image_url ? (
                     <div className="flex-shrink-0">
                       <img 
-                        src={content.cover_image_url} 
+                        src={getImageSrc(content.cover_image_url)} 
                         alt={content.title}
                         className="w-20 h-16 sm:w-24 sm:h-20 rounded-lg object-cover shadow-sm"
                         onError={(e) => {
-                          // 图片加载失败时隐藏
-                          (e.target as HTMLImageElement).style.display = 'none';
+                          const target = e.target as HTMLImageElement;
+                          const original = content.cover_image_url!;
+                          if (target.src.includes('/api/proxy/image') && !target.dataset.directTried) {
+                            target.dataset.directTried = 'true';
+                            target.src = original;
+                            return;
+                          }
+                          target.style.display = 'none';
                         }}
                       />
                     </div>

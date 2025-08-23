@@ -307,23 +307,79 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // 获取订阅信息，用于后续删除历史内容
+    const { data: subscription, error: getError } = await supabase
+      .from('user_subscriptions')
+      .select('subscription_id, subscription_type')
+      .eq('id', subscriptionId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (getError || !subscription) {
+      console.error('获取订阅信息失败:', getError);
+      return NextResponse.json(
+        { error: '订阅不存在或无权限' },
+        { status: 404 }
+      );
+    }
+
     // 删除订阅（实际是设置为不活跃）
-    const { error } = await supabase
+    const { error: deleteError } = await supabase
       .from('user_subscriptions')
       .update({ is_active: false })
       .eq('id', subscriptionId)
       .eq('user_id', user.id);
 
-    if (error) {
-      console.error('取消订阅失败:', error);
+    if (deleteError) {
+      console.error('取消订阅失败:', deleteError);
       return NextResponse.json(
         { error: '取消订阅失败' },
         { status: 500 }
       );
     }
 
+    // 删除该订阅的所有历史内容
+    let deletedContentsCount = 0;
+    if (subscription.subscription_type === 'wechat') {
+      // 先获取所有要删除的content_id
+      const { data: contentsToDelete, error: getContentsError } = await supabase
+        .from('contents')
+        .select('id')
+        .eq('source_id', subscription.subscription_id)
+        .eq('source_type', 'wechat');
+
+      if (!getContentsError && contentsToDelete && contentsToDelete.length > 0) {
+        const contentIds = contentsToDelete.map(c => c.id);
+        
+        // 先删除content_texts表的相关数据（子表）
+        const { error: deleteTextsError } = await supabase
+          .from('content_texts')
+          .delete()
+          .in('content_id', contentIds);
+
+        if (deleteTextsError) {
+          console.warn('删除内容文本失败（继续执行）:', deleteTextsError);
+        }
+
+        // 删除contents表的数据（主表）
+        const { error: deleteContentsError } = await supabase
+          .from('contents')
+          .delete()
+          .eq('source_id', subscription.subscription_id)
+          .eq('source_type', 'wechat');
+
+        if (deleteContentsError) {
+          console.error('删除历史内容失败:', deleteContentsError);
+          // 注意：这里不直接返回错误，因为订阅已经取消了
+        } else {
+          deletedContentsCount = contentIds.length;
+        }
+      }
+    }
+
     return NextResponse.json({
-      message: '取消订阅成功'
+      message: '取消订阅成功',
+      deletedContents: deletedContentsCount
     });
 
   } catch (error) {

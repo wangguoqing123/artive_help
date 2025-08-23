@@ -12,9 +12,11 @@ import { SubscriptionManager } from "./SubscriptionManager";
 import { TimelineSection } from "./TimelineSection";
 import { Icons } from "@/components/ui/Icons";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/Toast";
 
 export function InspirationMarket({ locale, messages }: { locale: AppLocale; messages: any }) {
   const t = (path: string) => path.split(".").reduce((acc: any, key) => acc?.[key], messages);
+  const { push } = useToast();
   
   // 订阅管理状态
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -64,14 +66,27 @@ export function InspirationMarket({ locale, messages }: { locale: AppLocale; mes
 
   // 处理内容入库
   const handleAddToMaterials = async (contentId: string) => {
-    // TODO: 实现API调用
-    setTimelineContent(prev => 
-      prev.map(item => 
-        item.id === contentId 
-          ? { ...item, isInMaterials: true }
-          : item
-      )
-    );
+    try {
+      const res = await fetch('/api/materials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contentId })
+      });
+      if (!res.ok) {
+        console.error('加入素材库失败');
+        return;
+      }
+      setTimelineContent(prev => 
+        prev.map(item => 
+          item.id === contentId 
+            ? { ...item, isInMaterials: true }
+            : item
+        )
+      );
+      push(t("app.feedback.addSuccess") || "添加成功", "success");
+    } catch (e) {
+      console.error('加入素材库异常', e);
+    }
   };
 
   // 加载所有订阅的内容
@@ -91,6 +106,16 @@ export function InspirationMarket({ locale, messages }: { locale: AppLocale; mes
       if (data.content && Array.isArray(data.content)) {
         setTimelineContent(data.content);
         console.log(`加载到 ${data.content.length} 条内容`);
+        
+        // 调试：检查封面图数据
+        data.content.forEach((item: any, index: number) => {
+          console.log(`内容${index + 1}:`, {
+            title: item.title?.substring(0, 30) + '...',
+            thumbnail: item.thumbnail || '无封面',
+            thumbnail_length: item.thumbnail?.length || 0,
+            sourceAvatar: item.sourceAvatar || '无头像'
+          });
+        });
       } else {
         setTimelineContent([]);
         console.log('没有找到内容');
@@ -103,7 +128,7 @@ export function InspirationMarket({ locale, messages }: { locale: AppLocale; mes
     }
   };
 
-  // 刷新最新内容（刷新所有订阅的最新内容）
+  // 获取最新内容（获取当日已订阅，未停用的所有公众号的内容）
   const handleFetchLatestContent = async () => {
     if (subscriptions.filter(s => s.status === 'active').length === 0) {
       console.log('请先添加订阅');
@@ -112,10 +137,10 @@ export function InspirationMarket({ locale, messages }: { locale: AppLocale; mes
 
     setIsRefreshing(true);
     try {
-      console.log('正在刷新所有订阅的最新内容...');
+      console.log('正在获取当日最新内容...');
       
-      // 调用POST接口刷新所有订阅的内容
-      const response = await fetch('/api/subscriptions/content', {
+      // 调用新的最新内容API，获取当日内容并进行去重检查
+      const response = await fetch('/api/subscriptions/latest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,16 +149,21 @@ export function InspirationMarket({ locale, messages }: { locale: AppLocale; mes
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || '刷新内容失败');
+        throw new Error(errorData.error || '获取最新内容失败');
       }
       
-      const refreshResult = await response.json();
-      console.log(`刷新完成: ${refreshResult.refreshed}/${refreshResult.total} 个订阅，新增 ${refreshResult.newArticles} 条内容`);
+      const result = await response.json();
+      console.log(`获取完成: 处理了 ${result.processedAccounts}/${result.totalAccounts} 个公众号，新增 ${result.newContentCount} 条内容`);
       
-      // 刷新完成后重新加载内容
+      // 如果有失败的账号，在控制台显示详情
+      if (result.failedAccounts && result.failedAccounts.length > 0) {
+        console.warn('部分公众号处理失败:', result.failedAccounts);
+      }
+      
+      // 获取完成后重新加载内容以显示新内容
       await loadAllContent();
     } catch (error) {
-      console.error('刷新最新内容失败:', error);
+      console.error('获取最新内容失败:', error);
     } finally {
       setIsRefreshing(false);
     }

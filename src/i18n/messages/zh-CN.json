@@ -25,7 +25,7 @@
       "settings": "设置"
     },
     "actions": {
-      "addToLibrary": "加入素材库",
+      "addToLibrary": "添加到素材库",
       "batchRewrite": "批量改写",
       "batchDelete": "批量删除",
       "rewrite": "改写",
@@ -143,6 +143,7 @@
     },
     "feedback": {
       "addedToMaterials": "已加入素材库",
+      "addSuccess": "添加成功",
       "saved": "已保存",
       "deleted": "已删除",
       "published": "已发布",
@@ -176,7 +177,7 @@
         "disable": "停用",
         "edit": "编辑",
         "delete": "删除",
-        "deleteConfirm": "确定要删除这个订阅吗？已采集的内容将保留。",
+        "deleteConfirm": "确定要删除这个订阅吗？该公众号的所有历史内容也将被删除。",
         "deleteFailed": "取消订阅失败，请稍后重试",
         "all": "全部",
         "active": "启用",

@@ -99,18 +99,38 @@ export async function fetchHotItems(): Promise<HotItem[]> {
   }
 }
 
-export async function addToMaterials(_hot: HotItem): Promise<{ ok: true }>{
-  return new Promise((r) => setTimeout(() => r({ ok: true }), 200));
+export async function addToMaterials(content: string | HotItem): Promise<{ ok: true }>{
+  const contentId = typeof content === 'string' ? content : content.id;
+  const res = await fetch('/api/materials', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contentId })
+  });
+  if (!res.ok) {
+    throw new Error('Failed to add to materials');
+  }
+  return res.json();
 }
 
 export async function fetchMaterials(): Promise<Material[]> {
-  const now = Date.now();
-  return Array.from({ length: 30 }).map((_, i) => ({
-    id: `m-${i}`,
-    title: `示例素材 ${i + 1}`,
-    source: ["微信", "知乎", "百度"][i % 3],
-    collectedAt: new Date(now - i * 3_600_000).toISOString(),
-  }));
+  const res = await fetch('/api/materials', { cache: 'no-store' });
+  if (!res.ok) {
+    if (res.status === 401) return [];
+    throw new Error('Failed to fetch materials');
+  }
+  return res.json();
+}
+
+export async function deleteMaterials(contentIds: string[]): Promise<{ ok: true; deleted: number }>{
+  const res = await fetch('/api/materials', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contentIds })
+  });
+  if (!res.ok) {
+    throw new Error('Failed to delete materials');
+  }
+  return res.json();
 }
 
 export async function fetchOriginalArticle(id: string): Promise<Article> {

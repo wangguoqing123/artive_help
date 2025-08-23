@@ -153,29 +153,47 @@ export async function GET(request: NextRequest) {
       .eq('source_type', 'wechat')
       .in('source_id', wechatAccountIds);
 
-    // 格式化内容数据，转换为时间线格式
+    // 格式化内容数据，转换为TimelineContent格式
     const timelineContent = contents?.map(content => {
       const account = accountMap.get(content.source_id);
+      
+      // 调试：打印封面图URL（保留用于调试）
+      console.log('内容处理:', {
+        title: content.title.substring(0, 30) + '...',
+        has_cover: !!content.cover_image_url,
+        cover_url_length: content.cover_image_url?.length || 0
+      });
+      
       return {
         id: content.id,
-        title: content.title,
-        url: content.original_url,
-        coverImage: content.cover_image_url,
-        publishedAt: content.published_at,
         platform: 'wechat' as const,
-        source: {
-          id: account?.id,
-          name: account?.name || '',
-          displayName: account?.name, // 使用name作为displayName
-          avatar: account?.avatar_url || '/default-avatar.png'
-        },
-        metrics: {
-          readCount: content.send_to_fans_num || 0,
-          likeCount: 0, // 微信内容API暂不提供
-          commentCount: 0 // 微信内容API暂不提供
-        },
+        contentType: 'article' as const,
+        title: content.title,
+        summary: '', // 微信公众号暂无摘要
+        thumbnail: content.cover_image_url || '', // 使用封面图作为缩略图
+        author: account?.name || '',
+        sourceId: content.source_id,
+        sourceName: account?.name || '',
+        sourceAvatar: account?.avatar_url || '/default-avatar.svg', // 修正字段名
+        publishedAt: content.published_at,
+        url: content.original_url,
+        tags: [], // 暂时为空数组
         isInMaterials: false, // TODO: 查询是否已入库
-        contentType: 'article' as const
+        
+        // 平台特有字段
+        duration: undefined, // 微信文章无时长
+        viewCount: content.send_to_fans_num || 0, // 使用推送粉丝数作为阅读数
+        likeCount: undefined, // 微信API暂不提供
+        isLive: false,
+        hasSubtitles: false,
+        digest: '', // 微信文章摘要
+        isMultiArticle: false, // 暂时设为false
+        subArticles: undefined,
+        
+        // 元数据
+        rawData: content, // 保存原始数据
+        createdAt: content.created_at,
+        updatedAt: content.created_at // 暂用created_at
       };
     }) || [];
 
@@ -195,7 +213,7 @@ export async function GET(request: NextRequest) {
           id: sub.id,
           name: account?.name || '',
           displayName: account?.name, // 使用name作为displayName
-          avatar: account?.avatar_url || '/default-avatar.png',
+          avatar: account?.avatar_url || '/default-avatar.svg',
           platform: 'wechat'
         };
       })

@@ -9,6 +9,8 @@ import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import { searchWechatAccount, type WechatAccountSearchResult } from "@/lib/api/inspiration";
 import { WechatSearchResult } from "./WechatSearchResult";
+import { SubscriptionSkeleton } from "./SubscriptionSkeleton";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 interface SubscriptionManagerProps {
   subscriptions: Subscription[];
@@ -25,6 +27,7 @@ export function SubscriptionManager({
 }: SubscriptionManagerProps) {
   const t = (path: string) => path.split(".").reduce((acc: any, key) => acc?.[key], messages);
   const { push } = useToast();
+  const { confirm } = useConfirm();
   const searchContainerRef = useRef<HTMLDivElement>(null);
   
   // 搜索相关状态
@@ -52,11 +55,13 @@ export function SubscriptionManager({
     status: string;
   }>>({});
 
-  // 从数据库加载的订阅列表（废弃模拟数据）
+  // 加载状态
+  const [isLoadingSubscriptions, setIsLoadingSubscriptions] = useState(true);
 
   // 从数据库加载订阅列表
   useEffect(() => {
     const loadSubscriptions = async () => {
+      setIsLoadingSubscriptions(true); // 开始加载
       try {
         const response = await fetch('/api/subscriptions');
         if (response.ok) {
@@ -87,6 +92,8 @@ export function SubscriptionManager({
         if (subscriptions.length === 0) {
           onSubscriptionsUpdate([]);
         }
+      } finally {
+        setIsLoadingSubscriptions(false); // 加载完成
       }
     };
 
@@ -437,7 +444,18 @@ export function SubscriptionManager({
 
   // 删除订阅（调用后端并更新本地状态）
   const handleDelete = async (id: string) => {
-    const confirmed = confirm(t("app.inspiration.subscription.deleteConfirm"));
+    // 找到要删除的订阅信息
+    const subscription = subscriptions.find(sub => sub.id === id);
+    const subscriptionName = subscription?.displayName || subscription?.name || "该订阅";
+    
+    const confirmed = await confirm({
+      title: "删除订阅",
+      message: `确定要删除「${subscriptionName}」吗？该公众号的所有历史内容也将被永久删除。`,
+      confirmText: "删除",
+      cancelText: "取消",
+      type: "danger"
+    });
+    
     if (!confirmed) return;
 
     try {
@@ -450,9 +468,16 @@ export function SubscriptionManager({
         throw new Error(errorData.error || t("app.inspiration.subscription.deleteFailed"));
       }
 
+      const result = await response.json();
       const updatedSubscriptions = subscriptions.filter(sub => sub.id !== id);
       onSubscriptionsUpdate(updatedSubscriptions);
-      push(t("app.feedback.deleted"), "success");
+      
+      // 显示删除结果，包括删除的内容数量
+      if (result.deletedContents > 0) {
+        push(`订阅删除成功，同时删除了 ${result.deletedContents} 条历史内容`, "success");
+      } else {
+        push("订阅删除成功", "success");
+      }
     } catch (error) {
       console.error('删除订阅失败:', error);
       push(error instanceof Error ? error.message : t("app.inspiration.subscription.deleteFailed"), "error");
@@ -530,6 +555,11 @@ export function SubscriptionManager({
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}小时前`;
     return `${Math.floor(diffInMinutes / 1440)}天前`;
   };
+
+  // 如果正在加载订阅，显示骨架
+  if (isLoadingSubscriptions) {
+    return <SubscriptionSkeleton count={3} />;
+  }
 
   return (
     <div className="space-y-8">
@@ -796,7 +826,7 @@ export function SubscriptionManager({
                           </>
                         ) : (
                           <>
-                            {/* 内容获取按钮（仅微信公众号显示） */}
+                            {/* 获取历史内容按钮（仅微信公众号显示） */}
                             {subscription.platform === 'wechat' && (
                               <Button
                                 size="sm"
@@ -806,21 +836,13 @@ export function SubscriptionManager({
                                 className="text-blue-600 hover:text-blue-700 hover:border-blue-200"
                               >
                                 {fetchingContentIds.has(subscription.id) ? (
-                                  <Icons.loader className="w-4 h-4 animate-spin sm:mr-0" />
+                                  <Icons.loader className="w-4 h-4 animate-spin mr-1" />
                                 ) : (
-                                  <Icons.refresh className="w-4 h-4 sm:mr-0" />
+                                  <Icons.download className="w-4 h-4 mr-1" />
                                 )}
-                                <span className="sm:hidden ml-1">获取最新</span>
+                                获取历史内容
                               </Button>
                             )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => startEdit(subscription)}
-                            >
-                              <Icons.edit className="w-4 h-4 sm:mr-0" />
-                              <span className="sm:hidden ml-1">编辑</span>
-                            </Button>
                             <Button
                               size="sm"
                               variant="outline"

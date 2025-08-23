@@ -143,6 +143,7 @@
     },
     "feedback": {
       "addedToMaterials": "Added to materials",
+      "addSuccess": "Added successfully",
       "saved": "Saved",
       "deleted": "Deleted",
       "published": "Published",
@@ -176,7 +177,7 @@
         "disable": "Disable",
         "edit": "Edit",
         "delete": "Delete",
-        "deleteConfirm": "Delete this subscription? Collected content will be kept.",
+        "deleteConfirm": "Delete this subscription? All historical content from this account will also be deleted.",
         "deleteFailed": "Failed to unsubscribe, please try again later",
         "all": "All",
         "active": "Active",

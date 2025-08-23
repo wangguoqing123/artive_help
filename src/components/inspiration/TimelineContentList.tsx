@@ -18,6 +18,7 @@ interface TimelineContentListProps {
   // 事件处理
   onAddToMaterials: (contentId: string) => void;
   onLoadMore: () => void;
+  addLabel?: string;
 }
 
 export function TimelineContentList({
@@ -26,7 +27,8 @@ export function TimelineContentList({
   displayCount,
   isLoading,
   onAddToMaterials,
-  onLoadMore
+  onLoadMore,
+  addLabel
 }: TimelineContentListProps) {
   
   // 当前显示的内容
@@ -127,6 +129,7 @@ export function TimelineContentList({
                 key={item.id}
                 item={item}
                 onAddToMaterials={onAddToMaterials}
+                addLabel={addLabel}
               />
             ))}
           </div>

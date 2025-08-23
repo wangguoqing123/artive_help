@@ -118,22 +118,36 @@ export async function POST(request: NextRequest) {
     let existedCount = 0;
     let insertErrorCount = 0;
 
-    // 将第三方返回的文章字段归一化
+    // 将大家啦API返回的文章字段归一化
     const normalizeArticle = (item: any) => {
-      const link =
-        item?.link ||
-        item?.url ||
-        item?.content_url ||
-        item?.source_url ||
-        item?.doc_url ||
-        '';
-      const title = item?.title || item?.name || item?.doc_title || '';
-      const cover = item?.cover || item?.cover_url || item?.thumb || item?.thumbnail || '';
-      const idx = item?.idx || item?.index || 1;
-      const mid = item?.mid || item?.id || item?.doc_id || '';
-      // 兼容时间戳（秒）和可解析的时间字符串
-      const rawDatetime = item?.datetime || item?.publish_time || item?.pub_time || item?.created_at || item?.time;
+      // 大家啦API字段映射
+      const link = item?.url || '';                 // 文章链接
+      const title = item?.title || '';              // 文章标题
+      const digest = item?.digest || '';            // 文章摘要
+      const cover = item?.cover_url || item?.pic_cdn_url_1_1 || ''; // 封面图，优先1:1比例
+      const idx = item?.position || 1;             // 发文位置（头条|二条等）
+      const mid = item?.appmsgid || '';             // 文章ID
+      const sendToFansNum = item?.send_to_fans_num || 0; // 收到群发消息的粉丝数量
+      const msgStatus = item?.msg_status || 0;      // 文章状态：2正常，7已删除，6违规失败
+      const isDeleted = item?.is_deleted === '1';   // 是否已删除
+      const types = item?.types || 0;               // 9群发，1发布
+      const original = item?.original || 0;         // 1原创，0未声明，2转载
+      const itemShowType = item?.item_show_type || 0; // 0图文，5纯视频等
+      
+      // 大家啦API使用post_time字段（时间戳）和post_time_str字段（字符串）
+      const rawDatetime = item?.post_time ||           // 优先使用时间戳
+                          item?.post_time_str ||        // 备用字符串格式
+                          item?.update_time ||          // 更新时间
+                          item?.datetime || 
+                          item?.publish_time || 
+                          item?.pub_time || 
+                          item?.created_at || 
+                          item?.time ||
+                          item?.date ||
+                          item?.timestamp ||
+                          item?.publish_date;
       let publishedISO: string | null = null;
+      
       if (typeof rawDatetime === 'number') {
         // 大概率是秒级时间戳
         const ms = rawDatetime > 1e12 ? rawDatetime : rawDatetime * 1000;
@@ -144,14 +158,40 @@ export async function POST(request: NextRequest) {
           publishedISO = new Date(parsed).toISOString();
         }
       }
+      
+      // 记录时间解析结果用于调试
+      if (publishedISO) {
+        console.log('文章时间解析成功:', {
+          title: title?.substring(0, 30) + '...',
+          rawDatetime,
+          type: typeof rawDatetime,
+          parsedISO: publishedISO
+        });
+      } else {
+        console.warn('文章时间解析失败:', {
+          title: title?.substring(0, 30) + '...',
+          rawDatetime,
+          type: typeof rawDatetime,
+          post_time: item?.post_time,
+          post_time_str: item?.post_time_str
+        });
+      }
 
       return {
         title,
         link,
         cover,
+        digest,
         idx,
         mid,
         published_at: publishedISO,
+        send_to_fans_num: sendToFansNum,
+        msg_status: msgStatus,
+        is_deleted: isDeleted,
+        types: types,
+        original: original,
+        item_show_type: itemShowType,
+        originalDateTime: rawDatetime, // 保留原始时间数据用于调试
       };
     };
 
@@ -222,13 +262,38 @@ export async function POST(request: NextRequest) {
         const articles = result.data;
         fetchedPages++;
 
-        // 处理每页的文章 - 归一化字段并去除无链接项
+        // 调试：打印第一篇文章的完整结构来了解API数据格式
+        if (articles.length > 0 && page === 1) {
+          console.log('=== 大家啦API返回的第一篇文章完整结构 ===');
+          console.log('文章字段:', Object.keys(articles[0]));
+          console.log('完整数据:', JSON.stringify(articles[0], null, 2));
+        }
+
+        // 处理每页的文章 - 归一化字段并过滤无效文章
         for (const raw of articles) {
           const article = normalizeArticle(raw);
+          
+          // 跳过没有链接的文章
           if (!article.link) {
             skipNoLink++;
             continue;
           }
+          
+          // 跳过已删除的文章 (is_deleted = '1')
+          if (article.is_deleted) {
+            console.log('跳过已删除文章:', article.title?.substring(0, 30));
+            continue;
+          }
+          
+          // 跳过状态异常的文章 (msg_status = 7已删除, 6违规失败)
+          if (article.msg_status === 7 || article.msg_status === 6) {
+            console.log('跳过状态异常文章:', {
+              title: article.title?.substring(0, 30),
+              msg_status: article.msg_status
+            });
+            continue;
+          }
+          
           allArticles.push(article);
         }
 
@@ -260,6 +325,22 @@ export async function POST(request: NextRequest) {
           continue; // 文章已存在，跳过
         }
 
+        // 处理发布时间：如果没有发布时间，根据文章在API中的位置估算时间
+        let publishedAt = article.published_at;
+        if (!publishedAt) {
+          // 如果没有发布时间，我们基于当前时间往前推算
+          // 假设每篇文章间隔1小时（这比使用当前时间要合理）
+          const hoursAgo = allArticles.length; // 使用已处理文章数量作为小时数
+          const estimatedTime = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+          publishedAt = estimatedTime.toISOString();
+          
+          console.warn('文章无发布时间，使用估算时间:', {
+            title: article.title?.substring(0, 30) + '...',
+            estimatedTime: publishedAt,
+            hoursAgo
+          });
+        }
+        
         // 创建新的内容记录
         const { error: insertError } = await supabase
           .from('contents')
@@ -270,9 +351,9 @@ export async function POST(request: NextRequest) {
             title: article.title || '',
             original_url: article.link,
             cover_image_url: article.cover || '',
-            published_at: article.published_at || new Date().toISOString(),
+            published_at: publishedAt, // 使用真实时间或合理估算时间
             position: article.idx || 1,
-            send_to_fans_num: 0,
+            send_to_fans_num: article.send_to_fans_num || 0, // 使用实际推送数
             external_id: article.mid || ''
           });
 
