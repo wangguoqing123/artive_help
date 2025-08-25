@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { MODEL_DISPLAY_NAMES, type AIModelKey } from "@/lib/openrouter";
 
 export default function MaterialsTable({ locale, messages }: { locale: AppLocale; messages: any }) {
   const t = (path: string) => path.split(".").reduce((acc: any, key) => acc?.[key], messages);
@@ -17,6 +19,12 @@ export default function MaterialsTable({ locale, messages }: { locale: AppLocale
   const [viewMode, setViewMode] = useState<'grid'>('grid');
   const [platforms, setPlatforms] = useState<{ wechat: boolean; youtube: boolean }>({ wechat: true, youtube: true });
   const { push } = useToast();
+  const router = useRouter();
+  
+  // AI模型选择弹窗状态
+  const [showModelDialog, setShowModelDialog] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<AIModelKey>('claude-4');
+  const [isCreatingTasks, setIsCreatingTasks] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +63,49 @@ export default function MaterialsTable({ locale, messages }: { locale: AppLocale
       push("请先选择要批量改写的素材", "warning");
       return;
     }
-    push(`已选择 ${selectedItems.length} 个素材进行批量改写`, "info");
+    // 显示模型选择弹窗
+    setShowModelDialog(true);
+  }
+  
+  // 确认改写并创建任务
+  async function confirmRewrite() {
+    const selectedItems = filtered.filter(m => m.selected);
+    if (selectedItems.length === 0) {
+      push("请先选择要批量改写的素材", "warning");
+      return;
+    }
+    
+    setIsCreatingTasks(true);
+    
+    try {
+      // 调用API创建改写任务
+      const response = await fetch('/api/rewrite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contentIds: selectedItems.map(m => m.id),
+          aiModel: selectedModel,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('创建改写任务失败');
+      }
+      
+      const result = await response.json();
+      push(`成功创建 ${selectedItems.length} 个改写任务`, "success");
+      
+      // 跳转到改写页面
+      router.push(`/${locale}/rewrite?ids=${selectedItems.map(m => m.id).join(',')}`);
+    } catch (error) {
+      console.error('创建改写任务失败:', error);
+      push("创建改写任务失败，请稍后重试", "error");
+    } finally {
+      setIsCreatingTasks(false);
+      setShowModelDialog(false);
+    }
   }
 
   function batchDelete() {
@@ -126,8 +176,85 @@ export default function MaterialsTable({ locale, messages }: { locale: AppLocale
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
+    <>
+      {/* AI模型选择弹窗 */}
+      {showModelDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-background rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold mb-4">选择AI模型</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              选择用于改写文章的AI模型，不同模型有不同的特点
+            </p>
+            
+            <div className="space-y-3">
+              {(Object.keys(MODEL_DISPLAY_NAMES) as AIModelKey[]).map((model) => (
+                <label
+                  key={model}
+                  className={cn(
+                    "flex items-center p-4 rounded-lg border cursor-pointer transition-all",
+                    selectedModel === model
+                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
+                      : "border-border hover:border-muted-foreground/50"
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="aiModel"
+                    value={model}
+                    checked={selectedModel === model}
+                    onChange={(e) => setSelectedModel(e.target.value as AIModelKey)}
+                    className="mr-3"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">{MODEL_DISPLAY_NAMES[model]}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {model === 'claude-4' && '擅长理解上下文，生成自然流畅的内容'}
+                      {model === 'gpt-5' && '功能全面，适合各种改写场景'}
+                      {model === 'gemini-pro' && '支持超长文本，适合长文章改写'}
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+            
+            <div className="mt-6 text-xs text-muted-foreground">
+              <Icons.info className="inline w-3 h-3 mr-1" />
+              已选择 {filtered.filter(m => m.selected).length} 篇文章进行批量改写
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setShowModelDialog(false)}
+                disabled={isCreatingTasks}
+                className="flex-1"
+              >
+                取消
+              </Button>
+              <Button
+                onClick={confirmRewrite}
+                disabled={isCreatingTasks}
+                className="flex-1 gap-2"
+              >
+                {isCreatingTasks ? (
+                  <>
+                    <Icons.loader className="w-4 h-4 animate-spin" />
+                    创建中...
+                  </>
+                ) : (
+                  <>
+                    <Icons.sparkles className="w-4 h-4" />
+                    开始改写
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="space-y-6">
+        {/* Header Section */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold gradient-text">素材库管理</h1>
@@ -327,13 +454,29 @@ export default function MaterialsTable({ locale, messages }: { locale: AppLocale
                       {new Date(material.collectedAt).toLocaleDateString()}
                     </span>
                   </div>
+                  {/* 显示原文链接 */}
+                  {material.url && (
+                    <div className="mt-2 pt-2 border-t">
+                      <a 
+                        href={material.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 truncate"
+                      >
+                        <Icons.link className="w-3 h-3 flex-shrink-0" />
+                        查看原文
+                      </a>
+                    </div>
+                  )}
                 </div>
               </Card>
             ))}
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

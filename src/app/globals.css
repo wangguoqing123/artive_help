@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* 流式内容动画 */
+@keyframes pulse-gentle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.animate-pulse-gentle {
+  animation: pulse-gentle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 :root {
   /* Green Theme Colors */
   --background: #fafafa;

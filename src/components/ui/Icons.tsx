@@ -51,6 +51,20 @@ import {
   Check,
   Users
 } from "lucide-react"
+import {
+  ChevronsUpDown,
+  ShieldCheck,
+  ShieldAlert,
+  Bold as BoldIcon,
+  Italic as ItalicIcon,
+  Underline as UnderlineIcon,
+  List as ListIcon,
+  ListOrdered as ListOrderedIcon,
+  Quote,
+  Minus,
+  Undo2,
+  Redo2,
+} from "lucide-react"
 
 export const Icons = {
   // Navigation & Actions
@@ -120,9 +134,23 @@ export const Icons = {
   filter: Filter,
   sortDesc: SortDesc,
   refresh: RefreshCw,
+  chevronsUpDown: ChevronsUpDown,
   
   // Platform Icons
   newspaper: Newspaper,
   hash: Hash,
   globe: Globe,
+
+  // Editor
+  bold: BoldIcon,
+  italic: ItalicIcon,
+  underline: UnderlineIcon,
+  list: ListIcon,
+  listOrdered: ListOrderedIcon,
+  quote: Quote,
+  minus: Minus,
+  undo: Undo2,
+  redo: Redo2,
+  shieldCheck: ShieldCheck,
+  shieldAlert: ShieldAlert,
 }

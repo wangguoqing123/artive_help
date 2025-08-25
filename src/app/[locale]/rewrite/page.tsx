@@ -1,4 +1,4 @@
-import RewriteClient from "@/components/rewrite/RewriteClient";
+import RewriteClient from "@/components/rewrite/RewriteClientV2";
 import { loadMessages } from "@/i18n";
 import type { AppLocale } from "@/i18n/locales";
 

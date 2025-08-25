@@ -9,7 +9,7 @@
 
 ## 代码规范
 
-### 多语言支持（禁止硬编码）
+<!-- ### 多语言支持（禁止硬编码）
 
 **Web 开发 (Next.js/React)**
 ```javascript
@@ -20,7 +20,7 @@ const title = "欢迎";
 import { useTranslation } from 'next-i18next';
 const { t } = useTranslation();
 const title = t('welcome');
-```
+``` -->
 
 **iOS 开发 (Swift)**
 ```swift

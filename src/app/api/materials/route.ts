@@ -62,6 +62,14 @@ export async function GET(request: NextRequest) {
       cover: (c as any).cover_image_url as string | undefined,
       url: (c as any).original_url as string | undefined,
     }));
+    
+    // 调试：打印素材数据
+    console.log('素材库数据:', result.map(r => ({
+      id: r.id,
+      title: r.title,
+      url: r.url,
+      has_url: !!r.url
+    })));
 
     return NextResponse.json(result);
   } catch (error) {

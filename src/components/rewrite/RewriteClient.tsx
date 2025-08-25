@@ -319,6 +319,7 @@ export default function RewriteClient({ locale, messages, initialIds }: { locale
                   {wordCount.rewritten} 字
                 </div>
               </div>
+
             </div>
           </CardHeader>
           <CardContent>
