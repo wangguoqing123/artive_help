@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', taskId);
 
-        await writer.write(encoder.encode(`data: ${JSON.stringify({ 
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
           type: 'status', 
           status: 'processing',
           message: '正在获取原文内容...' 
@@ -106,12 +106,12 @@ export async function POST(request: NextRequest) {
         if (cached) {
           originalTitle = cached.original_title;
           originalHtml = cached.original_html;
-          await writer.write(encoder.encode(`data: ${JSON.stringify({ 
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
             type: 'progress', 
             message: '使用缓存的原文内容' 
           })}\n\n`));
         } else if (content.original_url && isWechatArticleUrl(content.original_url)) {
-          await writer.write(encoder.encode(`data: ${JSON.stringify({ 
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
             type: 'progress', 
             message: '正在获取微信文章内容...' 
           })}\n\n`));
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
           throw new Error('素材缺少有效的原文链接');
         }
 
-        await writer.write(encoder.encode(`data: ${JSON.stringify({ 
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
           type: 'progress', 
           message: '正在调用AI进行改写...' 
         })}\n\n`));
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
                   accumulatedContent += content;
                   
                   // 发送内容片段给前端
-                  await writer.write(encoder.encode(`data: ${JSON.stringify({ 
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
                     type: 'content', 
                     content: content 
                   })}\n\n`));
@@ -335,7 +335,7 @@ export async function POST(request: NextRequest) {
           result.content = '<p>改写内容为空，请重试</p>';
         }
 
-        await writer.write(encoder.encode(`data: ${JSON.stringify({ 
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
           type: 'progress', 
           message: '正在保存改写结果...' 
         })}\n\n`));
@@ -381,7 +381,7 @@ export async function POST(request: NextRequest) {
           .eq('id', taskId);
 
         // 发送完成事件
-        await writer.write(encoder.encode(`data: ${JSON.stringify({ 
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
           type: 'complete',
           status: 'completed',
           result: savedResult
@@ -415,18 +415,17 @@ export async function POST(request: NextRequest) {
           .eq('id', taskId);
 
         // 发送错误事件
-        await writer.write(encoder.encode(`data: ${JSON.stringify({ 
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
           type: 'error',
           status: 'failed',
           error: error instanceof Error ? error.message : '未知错误'
         })}\n\n`));
       } finally {
-        await writer.close();
+        controller.close();
       }
-    })();
 
     // 返回流式响应
-    return new Response(stream.readable, {
+    return new Response(readableStream, {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',

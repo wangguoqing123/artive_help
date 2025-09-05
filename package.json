@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
-    "dev:normal": "next dev",
-    "dev:clean": "rm -rf .next && next dev --turbo",
+    "dev": "next dev --turbo -p 8080",
+    "dev:normal": "next dev -p 8080",
+    "dev:clean": "rm -rf .next && next dev --turbo -p 8080",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
