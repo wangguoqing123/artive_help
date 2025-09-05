@@ -95,7 +95,7 @@ export function WechatSearchResult({
               
               {/* 订阅按钮 */}
               <Button
-                variant={isSubscribed ? "outline" : "default"}
+                variant={isSubscribed ? "outline" : "primary"}
                 size="sm"
                 disabled={isSubscribed}
                 onClick={() => !isSubscribed && onSubscribe(account)}

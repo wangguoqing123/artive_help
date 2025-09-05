@@ -334,7 +334,7 @@ export function ContentList({ subscriptionId, subscriptionName }: ContentListPro
                       return (
                         <Button
                           key={pageNumber}
-                          variant={pageNumber === pagination.page ? "default" : "outline"}
+                          variant={pageNumber === pagination.page ? "primary" : "outline"}
                           size="sm"
                           className="w-8 h-8 p-0"
                           onClick={() => handlePageChange(pageNumber)}

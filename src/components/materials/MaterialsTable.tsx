@@ -11,9 +11,11 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { MODEL_DISPLAY_NAMES, type AIModelKey } from "@/lib/openrouter";
 
+type MaterialRow = Material & { selected?: boolean };
+
 export default function MaterialsTable({ locale, messages }: { locale: AppLocale; messages: any }) {
   const t = (path: string) => path.split(".").reduce((acc: any, key) => acc?.[key], messages);
-  const [list, setList] = useState<Material[]>([]);
+  const [list, setList] = useState<MaterialRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState("");
   const [viewMode, setViewMode] = useState<'grid'>('grid');
@@ -124,7 +126,7 @@ export default function MaterialsTable({ locale, messages }: { locale: AppLocale
       });
   }
 
-  const filtered = useMemo(() => {
+  const filtered: MaterialRow[] = useMemo(() => {
     const kw = keyword.trim();
     if (!kw) return list;
     return list.filter((m) => m.title.includes(kw));
@@ -435,7 +437,7 @@ export default function MaterialsTable({ locale, messages }: { locale: AppLocale
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Icons.file className="w-10 h-10 text-muted-foreground" />
+                      <Icons.fileText className="w-10 h-10 text-muted-foreground" />
                     </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
@@ -479,4 +481,3 @@ export default function MaterialsTable({ locale, messages }: { locale: AppLocale
     </>
   );
 }
-

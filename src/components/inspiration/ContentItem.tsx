@@ -82,7 +82,7 @@ export function ContentItem({ item, onAddToMaterials, addLabel }: ContentItemPro
           <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <Button
               size="sm"
-              variant={item.isInMaterials ? "outline" : "default"}
+              variant={item.isInMaterials ? "outline" : "primary"}
               disabled={item.isInMaterials}
               onClick={() => !item.isInMaterials && onAddToMaterials(item.id)}
               className={cn(
@@ -127,7 +127,7 @@ export function ContentItem({ item, onAddToMaterials, addLabel }: ContentItemPro
                     // 如果代理失败，尝试直接加载原图
                     if (originalSrc.includes('/api/proxy/image') && !target.hasAttribute('data-direct-tried')) {
                       target.setAttribute('data-direct-tried', 'true');
-                      target.src = item.thumbnail; // 尝试直接加载原图
+                      target.src = item.thumbnail || '/placeholder-image.svg'; // 尝试直接加载原图（兜底占位）
                       console.log('代理失败，尝试直接加载:', item.thumbnail);
                       return;
                     }

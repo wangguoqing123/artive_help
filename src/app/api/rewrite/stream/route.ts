@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
             const jsonMatch = accumulatedContent.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
               console.log('[流式改写] 找到JSON内容，尝试修复换行符');
-              let jsonStr = jsonMatch[0];
+              const jsonStr = jsonMatch[0];
               
               // 尝试不同的修复策略
               try {
@@ -306,7 +306,7 @@ export async function POST(request: NextRequest) {
           
           if (titleMatch && contentStart > 0) {
             // 找到content的开始和结束
-            let contentEnd = accumulatedContent.lastIndexOf('"}');
+            const contentEnd = accumulatedContent.lastIndexOf('"}');
             if (contentEnd > contentStart) {
               const contentPart = accumulatedContent.substring(contentStart + 11, contentEnd);
               result = {

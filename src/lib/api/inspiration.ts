@@ -105,7 +105,7 @@ export async function searchWechatAccount(keyword: string): Promise<ApiResponse<
       console.error('API响应失败:', {
         status: response.status,
         statusText: response.statusText,
-        url: url
+        url: '/api/wechat/search'
       });
       
       // 尝试读取错误响应内容
