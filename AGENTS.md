@@ -111,4 +111,6 @@ return new Response(readableStream, {
 - 环境变量缺失：检查 `.env.local` 是否齐全，且生产环境配置了必要的 Secrets。
 - LLM 响应解析失败：查看服务端日志，必要时放宽兜底策略，但需记录原因与示例，避免误吞真实错误。
 
+用中文回复我，不要用英文
+
 如需进一步自动化（lint-staged/husky、CI 等），请在提交前与维护者确认，我可以据此扩展本指南与脚本。

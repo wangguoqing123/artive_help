@@ -424,6 +424,9 @@ export async function POST(request: NextRequest) {
         controller.close();
       }
 
+      }
+    });
+
     // 返回流式响应
     return new Response(readableStream, {
       headers: {
